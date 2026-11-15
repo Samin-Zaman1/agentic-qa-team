@@ -1,8 +1,8 @@
 <div align="center">
 
-# QA Team Simulator
+# Agentic QA Team
 
-**Practice real-world QA on a software team made of AI teammates.**
+**Practice real-world QA on a software team of AI agents.**
 
 I'm the QA engineer. Six AI colleagues (a product manager, a project manager, a QA lead and three developers) plan
 sprints, write code, push back on my bug reports and ship. They're building **TestPal**, a personal testing
@@ -72,7 +72,7 @@ flowchart LR
 - **The board and bug tracker** are markdown files (`team/board.md`, `team/bugs/`) that the office parses and edits.
   They're readable by humans and by agents.
 
-## A sprint in the simulator
+## A sprint with the team
 
 | Day | What happens |
 |---|---|

@@ -6,7 +6,7 @@
   "publisher": "local",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Samin-Zaman1/intent-tests.git"
+    "url": "https://github.com/Samin-Zaman1/agentic-qa-team.git"
   },
   "private": true,
   "engines": {
