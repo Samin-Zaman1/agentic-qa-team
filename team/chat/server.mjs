@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
-import { CHANNELS, HERE, PEOPLE, REPO, append, channel, clients, load, notify } from './lib/store.mjs';
+import { CHANNELS, FACILITATOR, HERE, PEOPLE, REPO, append, channel, clients, load, notify, readText } from './lib/store.mjs';
 import { CLAUDE, MODEL_NAME, deliver, mentionsIn, statuses, typingKeys } from './lib/agents.mjs';
 import { createBug, logActivity, readBoard, setBugStatus, setTicketStatus } from './lib/board.mjs';
 import { checkEndDay, checkEndMeeting, checkMeeting, dayLabel, endDay, endMeeting, meetingMessage, officeView, startDay, startMeeting } from './lib/office.mjs';
@@ -34,7 +34,7 @@ function recipients(ch, text) {
   const c = channel(ch);
   if (c.kind === 'dm') return [c.person];
   const named = mentionsIn(text);
-  return named.length ? named : ['priya']; // the lead keeps an eye on every channel
+  return named.length ? named : [FACILITATOR]; // the Project Manager keeps an eye on every channel
 }
 
 function listTeamFiles() {
@@ -83,10 +83,13 @@ function moveTicket({ id, action, comment = '' }) {
 
 function fileBug(f) {
   if (!String(f.title ?? '').trim()) throw fail('A bug needs a title.');
-  if (!/^Sev-[1-4]$/.test(f.severity ?? '')) throw fail('Pick a proposed severity.');
+  if (!/^Sev-[1-4]$/.test(f.severity ?? '')) throw fail('Pick a severity.');
   const id = createBug(f, dayLabel());
-  const msg = append('bugs', { from: 'samin', text: `🐞 Filed **${id}**: ${f.title.trim()}\n\nProposed ${f.severity}${f.ticket ? `, against ${f.ticket}` : ''}. [Open the report](team/bugs/${id}.md)` });
-  deliver('priya', 'bugs', msg, { extra: `Samin just filed ${id} (team/bugs/${id}.md). Acknowledge it briefly. Formal triage happens at the triage meeting, unless it looks like a Sev-1. If the Coaching setting is "always", also give quick feedback on the report against the rubric.` });
+  const msg = append('bugs', { from: 'samin', text: `🐞 Filed **${id}**: ${f.title.trim()}\n\n${f.severity}${f.ticket ? `, against ${f.ticket}` : ''}. [Open the report](team/bugs/${id}.md)` });
+  deliver(FACILITATOR, 'bugs', msg, { extra: `Samin just filed ${id} (team/bugs/${id}.md). Acknowledge it in one or two lines and say it's on the agenda for the next triage (Samin runs triage). If it's Sev-1, say what it might do to the sprint and suggest Samin raises it with Dana now. Don't judge the severity or the report.` });
+  if (/\*\*Coaching:\s*always/i.test(readText('team/TEAM.md'))) {
+    deliver('priya', 'bugs', msg, { extra: `Samin just filed ${id} (team/bugs/${id}.md). The Coaching setting is "always": give quick feedback on the report against the rubric in team/WORKFLOW.md (1–2 strengths, 1–2 changes). Don't change the report or its severity yourself.` });
+  }
   return id;
 }
 

@@ -3,15 +3,17 @@
 Two-week sprints (10 workdays) with Scrum-style ceremonies. They're on the **Calendar** in the Team Office app,
 and each one also has a slash command for Claude Code:
 
+Tomas (Project Manager) facilitates every ceremony except bug triage, which you run.
+
 | Ceremony | When | Command | What happens | Your job as QA |
 |---|---|---|---|---|
-| Sprint planning | Day 1 | `/sprint-planning` | Team picks tickets from the backlog, estimates and commits | Flag tickets that are hard to test, and estimate your test effort too |
-| Refinement ("three amigos") | Days 1, 2, 5, or any time | `/refinement IT-101` | Dev + QA + PO agree acceptance criteria for one ticket | Ask "what happens when…?" until the edge cases are written down |
+| Sprint planning | Day 1 | `/sprint-planning` | Dana proposes the goal and order, the devs estimate, and Dana commits the scope. Tomas checks capacity | Flag tickets that are hard to test, estimate your test effort, and say what should be cut |
+| Refinement ("three amigos") | Days 1, 2, 5, or any time | `/refinement IT-101` | Dev + QA + Dana agree acceptance criteria for one ticket | Ask "what happens when…?" until the edge cases are written down |
 | Daily standup | Days 2–10, 09:30 | `/standup` | Yesterday / today / blockers, about 2 minutes each | Report what you tested, what's blocked, and which bugs are open |
-| Bug triage | Days 3, 6, 8 | `/triage` | Priya sets severity and priority on new bugs and assigns them | Defend your severity with evidence |
+| Bug triage | Days 3, 6, 8 | `/triage` | **You run it.** Present each new bug, give its severity and propose an owner. Devs respond, Dana sets priority, and Tomas records the result | Run the meeting, and hold your severity with evidence (or change it if a dev convinces you) |
 | 1:1 with Priya | Days 4, 9 | (app only) | Your lead's feedback on how you're doing | Ask for what you want to learn |
-| Sprint review / demo | Day 10 | `/demo` | Devs show what's done, and QA says what was tested and what's known to be broken | Give the quality summary |
-| Retrospective | Day 10 | `/retro` | What went well, what didn't, what we change. Seeded defects get revealed | Be honest about what you missed |
+| Sprint review / demo | Day 10 | `/demo` | Devs show what's done. You give the quality summary and the QA go/no-go recommendation. Dana makes the ship call | Recommend go or no-go, and explain the risk in user terms |
+| Retrospective | Day 10 | `/retro` | What went well, what didn't, what we change. Priya reveals the seeded defects | Be honest about what you missed |
 
 Between ceremonies, talk to anyone directly: *"Ask Rafi why `check` exits 1 here"*, *"Tell Mei BUG-003 is reopened"*.
 
@@ -21,7 +23,8 @@ Between ceremonies, talk to anyone directly: *"Ask Rafi why `check` exits 1 here
 2. **Standup**, then your own work: testing, exploring, writing bug reports, and talking to people.
 3. **Meetings** from the calendar, when they're due.
 4. **End day.** Everyone does the rest of their day's work on their own. Devs write code, commit, review each
-   other and fix bugs. Priya reviews the day. Then they message you, and the day's recap goes to General
+   other and fix bugs. Dana handles scope questions, Tomas checks the board and the timeline, and Priya looks at
+   how you're doing. Then they message you, and the day's recap goes to General
    and to the [Day log](daylog.md). Work you haven't done doesn't do itself.
 
 ## Ticket lifecycle
@@ -59,8 +62,10 @@ Only QA closes a bug, and only after retesting it. File bugs with **🐞 File a 
 
 ## Bug severity and priority
 
-**Severity** is how bad the bug is for the user. QA proposes it and Priya confirms it.
-**Priority** is how soon we fix it. Priya decides, as PO.
+**Severity** is how bad the bug is for the user. **You set it** when you file the bug, with a one-line reason.
+Devs can challenge it at triage with evidence. You decide whether to change it.
+**Priority** is how soon we fix it. Dana decides it at triage, as Product Manager. A severe bug can still get a
+low priority (for example if almost nobody hits it), but Dana has to say why out loud.
 
 | Severity | Meaning | Example in this product |
 |---|---|---|
@@ -78,6 +83,13 @@ Only QA closes a bug, and only after retesting it. File bugs with **🐞 File a 
 - **Report tickets**: run the command that produces the report, through the extension or `node out/cli.js`, and read the output.
 - Test files and sample inputs you make go in `team/qa/`, which is your space.
 
+## Release go/no-go
+
+At the demo you give the **QA recommendation**: *go*, *no-go*, or *go with known risks* (name each one, with its
+severity and who it affects). Base it on the open bugs, the regression checklist run on `main`, and what you didn't
+test. Dana makes the final ship call. If Dana ships against your recommendation, the accepted risk goes in
+[decisions.md](decisions.md).
+
 ## What Priya grades a bug report on
 
 1. **Title** says what's wrong and where, e.g. *"`check --json` prints markdown when plan file is missing"*, not *"JSON broken"*
@@ -85,5 +97,5 @@ Only QA closes a bug, and only after retesting it. File bugs with **🐞 File a 
 3. **Expected vs actual** are separate, specific, and quote the real output
 4. **Environment**: branch or commit, OS, VS Code version if it matters
 5. **Evidence**: output, screenshot or a minimal sample file
-6. **Severity** is proposed with a one-line reason
+6. **Severity** is set with a one-line reason
 7. **One bug per report**, no opinions, and nothing a dev could read as blame

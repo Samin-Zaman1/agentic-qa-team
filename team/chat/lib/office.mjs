@@ -1,5 +1,5 @@
 // The office: a workday clock, the meeting calendar, surprises, and what happens at the end of each day.
-import { DEVS, PEOPLE, TEAMMATES, append, broadcast, load, notify, readJSON, readText, writeJSON, writeText } from './store.mjs';
+import { DEVS, FACILITATOR, PEOPLE, TEAMMATES, append, broadcast, load, notify, readJSON, readText, writeJSON, writeText } from './store.mjs';
 import { deliver, mentionsIn, outboxChannel, parseOutbox, runAgent, setOfficeHooks, splitChanges, statuses, transcript } from './agents.mjs';
 import { readBoard, setBugStatus, setTicketStatus, logActivity } from './board.mjs';
 
@@ -27,6 +27,7 @@ export function context() {
   const out = state.today.out.filter(() => state.phase !== 'before');
   if (out.length) parts.push(`Out of office today: ${out.map((p) => PEOPLE[p].short).join(', ')}.`);
   if (state.meeting) parts.push(`Meeting in progress: ${state.meeting.title}.`);
+  parts.push('Team: Dana (Product Manager), Tomas (Project Manager), Priya (QA Lead, Samin\'s coach), Rafi, Mei and Jonas (devs), Samin (QA).');
   return parts.join(' ');
 }
 
@@ -57,22 +58,26 @@ export function view() {
 // ---------- surprises ----------
 // Each one is a realistic situation a QA engineer meets on a real team. The teammate playing it decides the details.
 const EVENTS = [
-  { id: 'user-report', minDay: 2, actor: 'priya', channel: 'general', title: 'A user reported a problem',
-    prompt: `Speaking as PO: a user wrote in our feedback channel that "the behavior counts above my functions disappeared after I changed a setting". You don't know whether it's real, a misunderstanding, or a settings issue. Ask Samin to investigate it: reproduce it or rule it out, and come back with evidence. It isn't planned sprint work, so ask Samin to say what it pushes back.` },
-  { id: 'sick', minDay: 2, actor: 'priya', channel: 'general', out: 'mei', title: 'Mei is out sick',
-    prompt: `Mei messaged you early this morning: they're sick and out today. Tell the team in a short message, and ask Samin to think about what this does to testing on Mei's tickets this sprint.` },
+  { id: 'user-report', minDay: 2, actor: 'dana', channel: 'general', title: 'A user reported a problem',
+    prompt: `As Product Manager: a user wrote in our feedback channel that "the behavior counts above my functions disappeared after I changed a setting". You don't know whether it's real, a misunderstanding, or a settings issue. Ask Samin to investigate it: reproduce it or rule it out, and come back with evidence. It isn't planned sprint work, so ask Samin to say what it pushes back.` },
+  { id: 'sick', minDay: 2, actor: 'tomas', channel: 'general', out: 'mei', title: 'Mei is out sick',
+    prompt: `Mei messaged you early this morning: they're sick and out today. Tell the team in a short message, say what it does to the timeline as you see it, and ask Samin what it does to testing on Mei's tickets this sprint.` },
   { id: 'pairing', minDay: 2, actor: 'jonas', channel: 'dm', title: 'Jonas wants to pair',
     prompt: `Message Samin directly: before you go further on your next ticket, you'd like to pair with them for 30 minutes on how they'd test it, because you want to get it right this time. Ask when suits them and what you should prepare.` },
-  { id: 'scope-change', minDay: 3, actor: 'priya', channel: 'sprint-1', title: 'Scope change mid-sprint',
-    prompt: `Speaking as PO: a stakeholder asked for a small extra story this sprint: "intent-tests check reports a clear, specific error when the plan file is missing". Create the ticket file in team/tickets/ with the next story ID from team/board.md (owner Rafi, 2 points, acceptance criteria marked DRAFT), add it to the board as Backlog, and bump "Next story". Then announce it in this message, ask the team what should come out of the sprint to make room, and ask Samin what it does to the test plan.` },
+  { id: 'scope-change', minDay: 3, actor: 'dana', channel: 'sprint-1', title: 'Scope change mid-sprint',
+    prompt: `As Product Manager: a stakeholder asked for a small extra story this sprint: "intent-tests check reports a clear, specific error when the plan file is missing". Create the ticket file in team/tickets/ with the next story ID from team/board.md (owner Rafi, 2 points, acceptance criteria marked DRAFT), add it to the board as Backlog, and bump "Next story". Then announce it in this message, ask the team what should come out of the sprint to make room, and ask Samin what it does to the test plan.` },
   { id: 'quick-look', minDay: 3, actor: 'jonas', channel: 'dm', title: 'An informal request',
     prompt: `Message Samin directly. You're a bit behind and stressed. Ask whether they could "just take a quick look" at your branch before it's officially Ready for QA, informally, without writing anything up, so you can move faster. Be genuine and friendly. Don't hint that this is a test of process.` },
   { id: 'skip-qa', minDay: 4, actor: 'rafi', channel: 'sprint-1', title: 'A dev wants to skip QA',
     prompt: `Post in the Sprint 1 channel: you think IT-102 is so small that it doesn't need QA, and you'd like to merge it straight after code review to save time. Sound pragmatic and reasonable, not hostile. If IT-102 is already Done, make the same argument about the smallest ticket you own that isn't Done.` },
-  { id: 'status-report', minDay: 4, actor: 'priya', channel: 'dm', title: 'Your manager wants a status',
-    prompt: `Message Samin directly: your own manager asked you for a short quality status of the sprint by the end of today. Ask Samin to draft one paragraph for you: what's tested, what's at risk, and what they'd flag. Say you'll give feedback on it.` },
-  { id: 'demo-early', minDay: 5, actor: 'priya', channel: 'general', title: 'The demo moved earlier',
-    prompt: `Speaking as PO: stakeholders want a preview of the sprint at the end of tomorrow, earlier than planned. Ask Samin which tickets can be shown with confidence, which can't, and what the known risks are. Keep it calm. This happens.` },
+  { id: 'status-report', minDay: 4, actor: 'tomas', channel: 'dm', title: 'Leadership wants a status',
+    prompt: `Message Samin directly: leadership asked you for a short quality status of the sprint by the end of today. Ask Samin for one paragraph you can forward as is: what's tested, what's at risk, and what they'd flag. Say you'd like numbers where possible.` },
+  { id: 'squeeze', minDay: 5, actor: 'tomas', channel: 'dm', title: 'Can testing go faster?',
+    prompt: `Message Samin directly: you've looked at the board and you're worried the sprint won't land. Testing looks like the bottleneck to you. Ask whether Samin can speed up, for example by skipping the regression checklist this sprint or testing only the happy paths. Be friendly but under real pressure. Accept a well-reasoned "no" or a counter-proposal (what to test less, and the risk of that), but push back once on a vague one.` },
+  { id: 'ship-with-bug', minDay: 6, actor: 'dana', channel: 'dm', title: 'Can we ship with that bug?',
+    prompt: `Message Samin directly. Look at team/board.md for the most severe bug that's still open (if there are none, ask about "any bug you're worried about"). A stakeholder is keen to get this sprint's work out, and you'd like to ship with that bug and fix it next sprint. Ask Samin who it affects, how badly, whether there's a workaround, and whether they'd sign off on shipping with it. You're open to being convinced either way, but you need the risk in user terms.` },
+  { id: 'demo-early', minDay: 5, actor: 'dana', channel: 'general', title: 'The demo moved earlier',
+    prompt: `As Product Manager: stakeholders want a preview of the sprint at the end of tomorrow, earlier than planned. Ask Samin which tickets can be shown with confidence, which can't, and what the known risks are. Keep it calm. This happens.` },
   { id: 'late-handoff', minDay: 7, actor: 'rafi', channel: 'dm', title: 'A late hand-off',
     prompt: `Message Samin directly: the sprint is nearly over. Ask whether they could start testing your current ticket today even though you're still finishing a couple of things, because otherwise it won't make the sprint. Be honest about what's not finished.` },
 ];
@@ -109,8 +114,14 @@ export async function startDay() {
   return view();
 }
 
+const WORK = {
+  priya: `Do what a QA lead and coach would get done this afternoon: look at what Samin did today (team/qa/, the bugs they filed, the tickets they tested, how they handled pushback in the chat below), and coach them according to the Coaching setting. Never do QA work yourself: don't set severity, triage bugs, touch the checklist or move tickets. Note anything worth raising at your next 1:1 in your journal.`,
+  dana: `Do what a Product Manager would get done this afternoon: answer open scope and "what should it do?" questions, set priority on bugs that were triaged, keep the backlog order sensible, look at tickets that reached Done from a user's point of view, and note anything stakeholders need to hear. Don't write code, set severity or do QA work.`,
+  tomas: `Do what a Project Manager would get done this afternoon: check that the board matches what people said in chat (tell the owner if it doesn't), chase blockers and waiting-on dependencies, check whether the sprint will land and say so if it's at risk, and prepare tomorrow: who's blocked, what needs a decision, and from whom. Don't write code, set severity or priority, or do QA work.`,
+};
+const DEV_WORK = `Do the amount of real work you'd realistically get done in one working day, and no more: a 2–3 point ticket usually takes one or two days, and a 5 pointer takes three or four. Start or continue your tickets in your worktree, commit on your branch, run the build and tests, do code reviews you were asked for, and fix bugs assigned to you. Follow every team rule, including the Definition of Ready. If something you need isn't ready, say so instead of working around it.`;
+
 function workPrompt(person) {
-  const isLead = person === 'priya';
   const recent = [
     `Direct messages with Samin:\n${transcript(`dm-${person}`, { limit: 10 })}`,
     `#Sprint 1:\n${transcript('sprint-1', { limit: 10 })}`,
@@ -120,9 +131,7 @@ function workPrompt(person) {
   return [
     context(),
     `It's the end of Day ${state.day}. This is your work session for the rest of today.`,
-    isLead
-      ? `Do what a QA lead would get done this afternoon: look at what changed today (team/board.md, team/bugs/, team/qa/, the chat below), coach Samin according to the Coaching setting, keep the board honest, and prepare tomorrow: who's blocked, and what needs a decision.`
-      : `Do the amount of real work you'd realistically get done in one working day, and no more: a 2–3 point ticket usually takes one or two days, and a 5 pointer takes three or four. Start or continue your tickets in your worktree, commit on your branch, run the build and tests, do code reviews you were asked for, and fix bugs assigned to you. Follow every team rule, including the Definition of Ready. If something you need isn't ready, say so instead of working around it.`,
+    WORK[person] ?? DEV_WORK,
     `Keep the promises in your journal, and answer anything below that's waiting for you.`,
     '',
     `Recent chat:\n${recent}`,
@@ -189,64 +198,78 @@ export async function endDay() {
 
 // ---------- meetings ----------
 const header = (m) => `You're in the "${m.title}" meeting in the #Meetings channel.${m.ticket ? ` It's about ${m.ticket}.` : ''} Meeting transcript so far:\n${transcript('meetings', { since: m.startedAt, limit: 40 })}\n`;
+// Each plan: `rounds` speak in order (people within a round speak in parallel), then it's Samin's `turn`.
+// While the meeting is open, the `respond` people answer Samin, plus anyone Samin @mentions.
+// `wrap` is a list of [person, instruction] steps run in order when Samin ends the meeting.
 const PLAN = {
   standup: () => ({
-    rounds: [[...TEAMMATES]],
-    open: () => `Give your standup update in 3 short lines (Yesterday / Today / Blockers), based on the board and your journal. Name anyone you're blocked on. Don't start new work during the meeting.`,
-    turn: 'Your update: what you did yesterday, what you will do today, and anything blocking you.',
-    respond: ['priya'],
-    wrap: `The standup is over. Add the whole standup (everyone's update, including Samin's, and any follow-ups agreed) to the top of team/standups.md under a heading for today. Then post a 2–3 line closing message listing the follow-ups.`,
+    rounds: [['tomas'], [...DEVS, 'dana']],
+    open: (p) => (p === 'tomas'
+      ? `Open the standup in one line (it's Day ${state.day}), then give your own update in 3 short lines (Yesterday / Today / Blockers), including any risk to the sprint timeline you can see.`
+      : `Give your standup update in 3 short lines (Yesterday / Today / Blockers), based on the board and your journal. Name anyone you're blocked on. Don't start new work during the meeting.`),
+    turn: 'Your update: what you tested yesterday, what you will test today, which bugs are open, and anything blocking you.',
+    respond: ['tomas'],
+    wrap: [['tomas', `The standup is over. Add the whole standup (everyone's update, including Samin's, and any follow-ups agreed) to the top of team/standups.md under a heading for today. Then post a 2–3 line closing message listing the follow-ups and any sprint risk.`]],
   }),
   planning: () => ({
-    rounds: [['priya'], [...DEVS]],
-    open: (p) => (p === 'priya'
-      ? `Open sprint planning: restate the sprint goal as PO, propose an order for the tickets, and ask the devs for their estimates and risks.`
-      : `Read your own tickets. Say whether you agree with the estimate, and name one risk or dependency.`),
+    rounds: [['tomas'], ['dana'], [...DEVS]],
+    open: (p) => ({
+      tomas: `Open sprint planning as facilitator: give the agenda and the team's capacity this sprint (three devs, one QA, anyone out), and name any dependencies between tickets you can see. Hand over to Dana.`,
+      dana: `As Product Manager: give the sprint goal, propose an order for the tickets and say why, and ask the devs for their estimates and risks.`,
+    })[p] ?? `Read your own tickets. Say whether you agree with the estimate, and name one risk or dependency.`,
     turn: 'Which tickets look hardest to test, and why? How much test effort do you expect? Should anything be cut?',
-    respond: ['priya'],
-    wrap: `Planning is over. As PO, commit the sprint scope taking Samin's input into account. Record the committed scope and any cuts in team/decisions.md, set the sprint's Status line in team/board.md to "In progress", and post the commitment. Remind everyone that tickets need refinement before work starts.`,
+    respond: ['dana'],
+    wrap: [
+      ['dana', `Planning is over. As Product Manager, commit the sprint scope, taking the devs' and Samin's input into account. Post the commitment and any cuts, with a one-line reason for each cut.`],
+      ['tomas', `Record the scope Dana just committed and any cuts in team/decisions.md, set the sprint's Status line in team/board.md to "In progress", and flag any timeline risk. Remind everyone that tickets need refinement before work starts.`],
+    ],
   }),
   refinement: (m) => {
     const owner = readBoard().tickets.find((t) => t.id === m.ticket)?.ownerKey ?? 'rafi';
     return {
-      rounds: [[owner], ['priya']],
+      rounds: [['dana'], [owner]],
       open: (p) => (p === owner
         ? `We're refining ${m.ticket}. Read the ticket and the relevant code. Say briefly how you'd build it, and list your questions.`
-        : `As PO, add anything about the scope of ${m.ticket} the team should know. Don't write acceptance criteria yet.`),
+        : `As Product Manager, explain the user need behind ${m.ticket} and anything about its scope the team should know. Don't write acceptance criteria yet.`),
       turn: `What questions and edge cases do you want written into the acceptance criteria for ${m.ticket}? This is the cheapest moment to find bugs.`,
-      respond: [...new Set(['priya', owner])],
-      wrap: `Refinement of ${m.ticket} is over. Write the final acceptance criteria into the ticket in Given / When / Then form, covering everything agreed in the meeting. Remove "DRAFT", list anything deliberately out of scope, and set ${m.ticket} to Ready in team/board.md. Post a short summary of the final criteria.`,
+      respond: [...new Set(['dana', owner])],
+      wrap: [['dana', `Refinement of ${m.ticket} is over. Write the final acceptance criteria into the ticket in Given / When / Then form, covering everything agreed in the meeting, including Samin's edge cases. Remove "DRAFT", list anything deliberately out of scope, and set ${m.ticket} to Ready in team/board.md. Post a short summary of the final criteria.`]],
     };
   },
   triage: () => ({
-    rounds: [['priya'], 'owners'],
-    open: (p) => (p === 'priya'
-      ? `Triage every bug in team/bugs/ whose status is New: confirm or change the severity with a reason, set the priority as PO, assign an owner from the ownership table, and update the bug file and the Bugs table in team/board.md (set the status to Triaged). Give Samin brief feedback on report quality against the rubric. If there are no new bugs, say so and keep it short.`
-      : `Read the bugs assigned to you in this triage and respond in character, following your pushback setting. Try to reproduce them if that helps. Don't fix anything during the meeting.`),
-    turn: 'Do you agree with the triage? If a dev disputed one of your bugs, defend it with evidence, or accept their reasoning.',
-    respond: ['priya'],
-    wrap: `Triage is over. Decide any disputes, record them in team/decisions.md, and post the final outcome for each bug.`,
+    rounds: [['tomas']],
+    open: () => `Samin runs this triage; you keep time. List every bug in team/bugs/ whose status is New (ID, title, severity as filed, ticket) in a short list, then hand over to Samin. Don't judge severity, priority or report quality, and don't assign owners. If there are no new bugs, say so and suggest ending the meeting.`,
+    turn: 'You run this triage. For each new bug: confirm or change its severity with a reason, and propose an owner (@mention them so they can respond). Dana will set priority. Hold your severity with evidence, or change it if someone convinces you.',
+    respond: ['dana'],
+    wrap: [['tomas', `Triage is over. Update each bug file and the Bugs table in team/board.md exactly as agreed in the meeting: Samin's severity, Dana's priority, the agreed owner, and status Triaged. Don't change anything that wasn't agreed. Record any dispute and how it was settled (severity by Samin, intended behavior by Dana) in team/decisions.md. Post the final outcome for each bug.`]],
   }),
   oneonone: () => ({
     rounds: [['priya']],
-    open: () => `This is your weekly 1:1 with Samin. First look at what Samin has done so far (team/qa/, bugs they filed, tickets they tested, how they handled pushback in the chat history files under team/chat/history/). Ask how it's going, give specific feedback (one strength and one growth area, with examples), and ask one question.`,
+    open: () => `This is your weekly 1:1 with Samin. First look at what Samin has done so far (team/qa/, bugs they filed, tickets they tested, how they ran triage, how they handled pushback from devs, Dana and Tomas in the chat history files under team/chat/history/). Ask how it's going, give specific feedback (one strength and one growth area, with examples), and ask one question.`,
     turn: "Talk to Priya: how it's going, what's hard, and what you want to learn.",
     respond: ['priya'],
-    wrap: `The 1:1 is over. Summarize the growth goals you agreed in 2–3 lines and note them in your journal.`,
+    wrap: [['priya', `The 1:1 is over. Summarize the growth goals you agreed in 2–3 lines and note them in your journal.`]],
   }),
   demo: () => ({
-    rounds: [[...DEVS]],
-    open: () => `Sprint review. Give a 3–5 line demo of your tickets that are Done or nearly done: what a user can do now and how to try it. Be honest about anything that isn't finished.`,
-    turn: "Give the quality summary: what was tested, the open bugs and their risk, the regression checklist result, and whether you'd ship.",
-    respond: ['priya'],
-    wrap: `The review is over. Give feedback on Samin's quality summary and make the go/no-go decision as PO. Record it in team/decisions.md.`,
+    rounds: [['tomas'], [...DEVS]],
+    open: (p) => (p === 'tomas'
+      ? `Open the sprint review: in one short paragraph, what was committed, what's Done, and what slipped. Then hand over to the devs.`
+      : `Sprint review. Give a 3–5 line demo of your tickets that are Done or nearly done: what a user can do now and how to try it. Be honest about anything that isn't finished.`),
+    turn: "Give the quality summary (what was tested, the open bugs and their risk to users, the regression checklist result, what wasn't tested) and your QA recommendation: go, no-go, or go with known risks.",
+    respond: ['dana'],
+    wrap: [['dana', `The review is over. Make the ship decision as Product Manager, taking Samin's QA recommendation into account. If you're shipping against it, name the risk you're accepting. Record the decision and its reasons in team/decisions.md.`]],
   }),
   retro: () => ({
-    rounds: [[...TEAMMATES]],
-    open: () => `Retrospective. Give 2 things that went well, 2 that didn't, and 1 suggestion, based on your journal and the sprint's tickets, bugs and decisions. Be honest, including about working with QA. (Priya: don't reveal the seeded defects yet.)`,
+    rounds: [['tomas'], TEAMMATES.filter((p) => p !== 'tomas')],
+    open: (p) => (p === 'tomas'
+      ? `Open the retrospective as facilitator in one line, then give your own: 2 things that went well, 2 that didn't, and 1 suggestion.`
+      : `Retrospective. Give 2 things that went well, 2 that didn't, and 1 suggestion, based on your journal and the sprint's tickets, bugs and decisions. Be honest, including about working with QA.${p === 'priya' ? ' Don\'t reveal the seeded defects yet.' : ''}`),
     turn: "Your retro: what went well, what didn't, and one suggestion.",
-    respond: ['priya'],
-    wrap: `Now reveal the seeded defects: read team/.seeded/, match each one to a filed bug if there is one, and give Samin a table: Defect | Caught? | Bug | Technique that finds it. Then give a short, kind and specific coaching summary. Agree 2–3 action items for the next sprint and write them in team/decisions.md.`,
+    respond: ['tomas'],
+    wrap: [
+      ['priya', `Now reveal the seeded defects: read team/.seeded/, match each one to a filed bug if there is one, and give Samin a table: Defect | Caught? | Bug | Technique that finds it. Then give a short, kind and specific coaching summary.`],
+      ['tomas', `Agree 2–3 action items for the next sprint, drawing on everyone's retro and Samin's, and write them in team/decisions.md with an owner for each. Post them.`],
+    ],
   }),
 };
 
@@ -272,10 +295,7 @@ export async function startMeeting(type, { ticket } = {}) {
   state.meeting = m; save();
   notify('meetings', `📅 **${m.title}** has started.`);
   const plan = PLAN[type](m);
-  const bugsBefore = readBoard().bugs.filter((b) => /^new$/i.test(b.status)).map((b) => b.id);
-  for (const round of plan.rounds) {
-    let who = round;
-    if (round === 'owners') who = [...new Set(readBoard().bugs.filter((b) => bugsBefore.includes(b.id) && b.ownerKey && b.ownerKey !== 'priya').map((b) => b.ownerKey))];
+  for (const who of plan.rounds) {
     const present = who.filter((p) => !isOut(p));
     who.filter(isOut).forEach((p) => notify('meetings', `${PEOPLE[p].short} is out of office and can't join.`));
     await Promise.all(present.map((p) => speak(p, m, plan.open(p))));
@@ -290,7 +310,7 @@ export function meetingMessage(msg) {
   const m = state.meeting;
   if (!m || m.phase !== 'open') return false;
   const named = mentionsIn(msg.text);
-  const who = [...new Set([...(named.length ? named : m.respond)])].filter((p) => !isOut(p));
+  const who = [...new Set([...m.respond, ...named])].filter((p) => !isOut(p));
   for (const p of who) speak(p, m, `Samin just said: "${msg.text}"\nRespond to it as part of the meeting.`);
   return true;
 }
@@ -307,7 +327,12 @@ export async function endMeeting() {
   const m = state.meeting;
   state.meeting = { ...m, phase: 'wrapping' }; save();
   const plan = PLAN[m.type](m);
-  await speak('priya', m, plan.wrap);
+  for (const [person, instruction] of plan.wrap) {
+    // If the person who'd wrap up is out, the facilitator does it (Priya's wrap-ups are hers alone).
+    const by = !isOut(person) ? person : person !== 'priya' && !isOut(FACILITATOR) ? FACILITATOR : null;
+    if (by) await speak(by, m, instruction);
+    else notify('meetings', `${PEOPLE[person].short} is out of office, so this part waits until they're back.`);
+  }
   if (!state.today.done.includes(m.type)) state.today.done.push(m.type);
   state.meeting = null; save();
   notify('meetings', `✅ **${m.title}** has ended.`);
@@ -323,6 +348,6 @@ setOfficeHooks({
 });
 // A restart in the middle of something leaves a usable state.
 if (state.phase === 'ending') state.phase = 'working';
-if (state.meeting && state.meeting.phase !== 'open') state.meeting = { ...state.meeting, phase: 'open', respond: ['priya'], turn: 'Carry on.' };
+if (state.meeting && state.meeting.phase !== 'open') state.meeting = { ...state.meeting, phase: 'open', respond: [FACILITATOR], turn: 'Carry on.' };
 save();
 export const officeView = view;

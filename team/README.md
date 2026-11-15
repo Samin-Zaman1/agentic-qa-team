@@ -1,7 +1,12 @@
 # Start here
 
-You're **Samin, QA Engineer** on a five-person team building Intent Tests. Your teammates are AI agents with
+You're **Samin, QA Engineer** on a seven-person team building Intent Tests. Your teammates are AI agents with
 their own roles, personalities and memory, and they keep working while you're busy with something else.
+
+You do all of the QA work, as a mid-level QA engineer would: strategy, testing, bug reports and severity, running
+triage, the regression checklist and the go/no-go recommendation. Around you are three devs (Rafi, Mei, Jonas),
+a Product Manager (**Dana**, the *what*), a Project Manager (**Tomas**, the *how and when*), and your QA Lead
+(**Priya**), who coaches you but never does the QA work for you.
 
 ## The office
 
@@ -9,8 +14,8 @@ Run `npm run team-chat` and open http://localhost:4321. Everything happens there
 
 | Where | What it's for |
 |---|---|
-| **Chat** | Channels (*General*, *Sprint 1*, *Bugs*, *📅 Meetings*) and a DM with each teammate. **@mention** people, or `@team` for everyone. In a channel, Priya answers posts that mention nobody. The dot on each avatar shows whether they're available, busy, in a meeting or out. |
-| **Calendar** | Today's meetings and the rest of the sprint. Press **Start** to hold a meeting: everyone speaks, then it's your turn, then press **End meeting** and Priya writes down the outcome. |
+| **Chat** | Channels (*General*, *Sprint 1*, *Bugs*, *📅 Meetings*) and a DM with each teammate. **@mention** people, or `@team` for everyone. In a channel, Tomas answers posts that mention nobody. The dot on each avatar shows whether they're available, busy, in a meeting or out. |
+| **Calendar** | Today's meetings and the rest of the sprint. Press **Start** to hold a meeting: everyone speaks, then it's your turn, then press **End meeting** and the outcome gets written down (usually by Tomas). |
 | **Board** | The sprint as a kanban board. The outlined columns are yours: **Start testing**, **Pass QA**, **Reopen**. **🐞 File a bug** opens the bug form. Retest fixed bugs from the bug table. |
 | **Builds** | CI. Every branch is compiled and tested on each new commit, and the result is posted in *Sprint 1*. Test only green builds. |
 | **Handbook** | Everything in this folder, readable, with links that work. |
@@ -49,13 +54,16 @@ Your own work only happens when you do it, just like in a real job.
 3. **Refinement** for each ticket. Get the edge cases into the acceptance criteria before any code exists. Devs won't start a ticket whose criteria are still DRAFT.
 4. **QA-2:** while the devs build, explore `main` and write the regression checklist. You'll probably find bugs in the existing code.
 5. **Test** each ticket once it's *Ready for QA* and its build is green (the how-to is in [WORKFLOW.md](WORKFLOW.md)). File bugs, reopen or pass the ticket.
-6. **Triage**: defend your severities. If a dev says "works as designed", decide whether to escalate to Priya.
+6. **Triage: you run it.** Present each new bug with its severity, propose an owner, and hold your severity with
+   evidence. Dana sets priority. If a dev says "works as designed", take the "what should it do?" question to Dana.
 7. **Sign off**: *Pass QA* tells the owner to merge. Then run the regression checklist on `main`.
-8. **Day 10: review & demo, then the retro.** Give the quality summary and the go/no-go, then see which seeded defects you caught.
+8. **Day 10: review & demo, then the retro.** Give the quality summary and your go/no-go recommendation, and
+   Dana makes the ship call. Then see which seeded defects you caught.
 
 Real-team skills to practice here: asking questions in refinement, writing bug reports a dev can't bounce,
-negotiating severity, giving status in standup, saying "no, it isn't ready", handling surprises and pressure,
-and delivering bad news without blame.
+negotiating severity, running a triage meeting, giving status in standup, saying "no, it isn't ready" to a
+Project Manager with a deadline, explaining risk to a Product Manager who wants to ship, handling surprises and
+pressure, and delivering bad news without blame.
 
 **Notes**
 - Every teammate reply is a real Claude run, and an end of day is one run per teammate. To make it cheaper, start the office with `TEAM_CHAT_MODEL=sonnet npm run team-chat`.

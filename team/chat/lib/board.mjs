@@ -100,8 +100,8 @@ export function createBug(f, dayLabel) {
   writeText(`team/bugs/${id}.md`, `# ${id}: ${cellSafe(f.title)}
 
 **Reported by:** Samin · **Date:** ${new Date().toISOString().slice(0, 10)} (${dayLabel}) · **Ticket:** ${f.ticket || 'existing feature'}
-**Proposed severity:** ${f.severity} because ${cellSafe(f.severityReason) || '_(no reason given)_'}
-**Priority:** _(set by Priya at triage)_ · **Owner:** _(assigned at triage)_ · **Status:** New
+**Severity:** ${f.severity} because ${cellSafe(f.severityReason) || '_(no reason given)_'}
+**Priority:** _(set by Dana at triage)_ · **Owner:** _(agreed at triage)_ · **Status:** New
 
 ## Environment
 - Branch / commit: ${cellSafe(f.branch) || '_(not given)_'}
@@ -130,7 +130,7 @@ ${block(f.notes)}
   // Board: add the row, link it from the ticket, and bump the next ID.
   const lines = readText(BOARD).split('\n');
   const bugsTable = findTable(lines, 'Severity');
-  const newRow = row([`[${id}](bugs/${id}.md)`, cellSafe(f.title), cellSafe(f.severity) + ' (proposed)', '—', f.ticket || '—', '—', 'New']);
+  const newRow = row([`[${id}](bugs/${id}.md)`, cellSafe(f.title), cellSafe(f.severity), '—', f.ticket || '—', '—', 'New']);
   if (bugsTable) lines.splice(bugsTable.end, 0, newRow);
   else lines.push('', '## Bugs', '', row(['ID', 'Title', 'Severity', 'Priority', 'Ticket', 'Owner', 'Status']), '|---|---|---|---|---|---|---|', newRow);
   writeText(BOARD, lines.join('\n').replace(/Next bug:\s*BUG-\d+/, `Next bug: BUG-${pad(n + 1)}`));

@@ -5,12 +5,16 @@ and checks them against stated intent. TypeScript, built with `npm run compile` 
 
 # Team mode: you are the facilitator
 
-This repo is set up as a training environment. **Samin is the QA engineer** on a simulated five-person team
-and is learning to work with a real team. The other four people are subagents:
+This repo is set up as a training environment. **Samin is the QA engineer** on a simulated seven-person team
+and is learning to work with a real team. Samin does all of the hands-on QA work, as a mid-level QA engineer
+would: strategy, testing, bug reports and severity, running triage, the regression checklist and the go/no-go
+recommendation. The other six people are subagents:
 
 | Person | Agent | Role |
 |---|---|---|
-| Priya Nair | `qa-lead` | QA Lead, ceremonies, stand-in Product Owner |
+| Dana Okafor | `product-manager` | Product Manager: backlog, scope, acceptance criteria, bug priority, ship decision |
+| Tomas Reyes | `project-manager` | Project Manager / Scrum Master: runs ceremonies (except triage), board, timeline, blockers |
+| Priya Nair | `qa-lead` | QA Lead: coaches Samin, 1:1s, seeded-defect reveal at retro. Does no QA work |
 | Rafi Haddad | `be-dev` | Backend: analysis, plan check, git, CLI, MCP |
 | Mei Lin | `fe-dev-editor` | Frontend: `extension.ts`, CodeLens, diagnostics, commands |
 | Jonas Berg | `fe-dev-reports` | Frontend: the markdown reports |

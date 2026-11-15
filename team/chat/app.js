@@ -108,7 +108,7 @@ function inline(s, base) {
     .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
     .replace(/(^|[^*\w])\*([^*\n]+)\*(?!\w)/g, '$1<i>$2</i>')
     .replace(/(^|[\s(])_([^_\n]+)_(?=[\s).,;:!?]|$)/g, '$1<i>$2</i>')
-    .replace(/(^|\s)@(Priya|Rafi|Mei|Jonas|Samin|team|everyone)\b/gi, (_, sp, n) => `${sp}<span class="mention ${/samin/i.test(n) ? 'me' : ''}">@${n}</span>`);
+    .replace(/(^|\s)@(Dana|Tomas|Priya|Rafi|Mei|Jonas|Samin|team|everyone)\b/gi, (_, sp, n) => `${sp}<span class="mention ${/samin/i.test(n) ? 'me' : ''}">@${n}</span>`);
   s = autoIds(s);
   return s.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${esc(codes[i])}</code>`);
 }
@@ -348,7 +348,7 @@ function renderFeed() {
     const [ic, title, body] = search ? ['search', 'No matches', `Nothing in this conversation matches "${esc(search)}".`]
       : c.kind === 'dm' ? ['chat', `Say hi to ${esc(S.people[c.person].short)}`, `${esc(c.topic)}. Only ${esc(S.people[c.person].short)} sees this conversation.`]
       : c.id === 'meetings' ? ['video', 'No meetings yet', 'Start one from the <a href="#calendar">Calendar</a>. Everyone joins here.']
-      : ['hash', `Welcome to #${esc(c.name)}`, `${esc(c.topic)} Priya answers posts that don't @mention anyone.`];
+      : ['hash', `Welcome to #${esc(c.name)}`, `${esc(c.topic)} Tomas answers posts that don't @mention anyone.`];
     feed.innerHTML = `<div class="empty"><div class="eic">${icon(ic, 22)}</div><b>${title}</b>${body}</div>`;
   } else {
     let html = '', prev = null;
@@ -435,7 +435,7 @@ function confirmEndDay() {
   modal({
     title: `End day ${OFFICE.day}?`,
     sub: 'Everyone heads off to finish their day.',
-    body: `<p>Each teammate who's in today does a realistic day's work on their own: devs write code and commit on their branches, review each other, fix bugs and update the board. Priya reviews the day. Then they message you about anything you need to know, and the day's recap is posted in General.</p>
+    body: `<p>Each teammate who's in today does a realistic day's work on their own: devs write code and commit on their branches, review each other, fix bugs and update the board. Dana handles scope questions, Tomas checks the board and the timeline, and Priya looks at how you're doing. Then they message you about anything you need to know, and the day's recap is posted in General.</p>
       <p>This takes a few minutes and uses a Claude run for each teammate. Before you go, check you've given your standup update and written down what you tested today.</p>`,
     actions: [{ label: 'Not yet' }, { label: `End day ${OFFICE.day}`, primary: true, run: async () => { const r = await api('/api/office/end-day', {}); if (r) { OFFICE = r; renderFrame(); location.hash = '#chat/general'; } } }],
   });
@@ -517,7 +517,7 @@ function bugForm(ticket = '') {
       ${field('ticket', 'Found while testing', `<select id="bf-ticket" name="ticket"><option value="">Existing feature (not a sprint ticket)</option>${tickets.map((x) => `<option value="${x.id}" ${x.id === ticket ? 'selected' : ''}>${x.id} · ${esc(plain(x.title)).slice(0, 40)}</option>`).join('')}</select>`)}
       ${field('branch', 'Branch or commit', `<input id="bf-branch" name="branch" list="bf-branches" value="${esc(t?.branch || 'main')}"><datalist id="bf-branches">${branches.map((b) => `<option value="${esc(b)}">`).join('')}</datalist>`)}
     </div>
-    <div class="field"><label>Proposed severity</label><div class="sev">${sevs.map(([s, d]) => `<label><input type="radio" name="severity" value="${s}">${s}<small>${d}</small></label>`).join('')}</div>
+    <div class="field"><label>Severity</label><div class="sev">${sevs.map(([s, d]) => `<label><input type="radio" name="severity" value="${s}">${s}<small>${d}</small></label>`).join('')}</div>
       <input name="severityReason" placeholder="Because… (one line)"></div>
     ${field('steps', 'Steps to reproduce', `<textarea id="bf-steps" name="steps" rows="4" placeholder="One step per line: exact commands, files and clicks"></textarea>`)}
     <div class="two">
@@ -534,13 +534,13 @@ function bugForm(ticket = '') {
   <aside class="rubric"><b>${icon('sparkle', 14)} What Priya looks for</b><ol>
     <li>The title says what's wrong and where</li><li>Steps someone else can paste and repeat</li><li>Expected and actual kept separate, quoting real output</li>
     <li>Environment: branch or commit</li><li>Evidence</li><li>Severity with a one-line reason</li><li>One bug per report, with no blame</li></ol>
-    <p>It's filed as <b>New</b> on the board, and Priya triages it.</p></aside></form>`;
+    <p>It's filed as <b>New</b> on the board. You present it at the next triage, and Dana sets its priority.</p></aside></form>`;
   modal({
     title: 'File a bug', sub: 'Creates the report in team/bugs/, adds it to the board and posts it in #Bugs.', body, big: true,
     actions: [{ label: 'Cancel' }, { label: 'File bug', primary: true, run: async () => {
       const f = Object.fromEntries(new FormData($('bugform')).entries());
       if (!f.title?.trim()) { toast('Give the bug a title.', 3000, 'alert'); return false; }
-      if (!f.severity) { toast('Propose a severity.', 3000, 'alert'); return false; }
+      if (!f.severity) { toast('Pick a severity.', 3000, 'alert'); return false; }
       const r = await api('/api/bugs', f);
       if (!r) return false;
       toast(`Filed ${r.id}.`, 3000, 'bug');
@@ -723,7 +723,7 @@ function updatePop() {
   const ta = $('input'), m = ta.value.slice(0, ta.selectionStart).match(/(^|\s)@(\w*)$/);
   if (!m) return hidePop();
   const q = m[2].toLowerCase();
-  popItems = [...['priya', 'rafi', 'mei', 'jonas'].map((id) => ({ key: S.people[id].short, label: S.people[id].name, sub: `${S.people[id].role} · ${STATUS_TEXT[presence(id)]}`, id })), { key: 'team', label: '@team', sub: 'Everyone on the team' }]
+  popItems = [...['dana', 'tomas', 'priya', 'rafi', 'mei', 'jonas'].map((id) => ({ key: S.people[id].short, label: S.people[id].name, sub: `${S.people[id].role} · ${STATUS_TEXT[presence(id)]}`, id })), { key: 'team', label: '@team', sub: 'Everyone on the team' }]
     .filter((x) => x.key.toLowerCase().startsWith(q));
   if (!popItems.length) return hidePop();
   popIndex = Math.min(popIndex, popItems.length - 1);

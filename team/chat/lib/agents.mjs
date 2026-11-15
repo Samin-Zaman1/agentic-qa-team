@@ -135,7 +135,7 @@ export function parseOutbox(text) {
 export const outboxChannel = (person, name) => (name === 'dm' || name === 'samin' ? `dm-${person}` : channel(name) ? name : `dm-${person}`);
 
 // ---------- chat replies ----------
-const MENTION = /@(priya|rafi|mei|jonas|team|everyone)\b/gi;
+const MENTION = /@(dana|tomas|priya|rafi|mei|jonas|team|everyone)\b/gi;
 export function mentionsIn(text) {
   const found = new Set();
   for (const [, m] of text.matchAll(MENTION)) {

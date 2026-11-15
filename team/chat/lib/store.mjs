@@ -10,15 +10,19 @@ fs.mkdirSync(HISTORY, { recursive: true });
 
 export const PEOPLE = {
   samin: { name: 'Samin Zaman', short: 'Samin', role: 'QA Engineer', color: '#0f766e' },
-  priya: { name: 'Priya Nair', short: 'Priya', role: 'QA Lead', agent: 'qa-lead', color: '#7c3aed' },
+  dana: { name: 'Dana Okafor', short: 'Dana', role: 'Product Manager', agent: 'product-manager', color: '#15803d' },
+  tomas: { name: 'Tomas Reyes', short: 'Tomas', role: 'Project Manager', agent: 'project-manager', color: '#b45309' },
+  priya: { name: 'Priya Nair', short: 'Priya', role: 'QA Lead (your coach)', agent: 'qa-lead', color: '#7c3aed' },
   rafi: { name: 'Rafi Haddad', short: 'Rafi', role: 'Backend Developer', agent: 'be-dev', color: '#c2410c' },
   mei: { name: 'Mei Lin', short: 'Mei', role: 'Frontend Developer (editor)', agent: 'fe-dev-editor', color: '#2563eb' },
   jonas: { name: 'Jonas Berg', short: 'Jonas', role: 'Frontend Developer (reports)', agent: 'fe-dev-reports', color: '#be185d' },
   ci: { name: 'CI', short: 'CI', role: 'Build pipeline', color: '#475569', bot: true },
   office: { name: 'Office', short: 'Office', role: 'Notifications', color: '#64748b', bot: true },
 };
-export const TEAMMATES = ['priya', 'rafi', 'mei', 'jonas'];
+export const TEAMMATES = ['dana', 'tomas', 'priya', 'rafi', 'mei', 'jonas'];
 export const DEVS = ['rafi', 'mei', 'jonas'];
+/** Who facilitates meetings and watches channels (the Project Manager). */
+export const FACILITATOR = 'tomas';
 /** Board "Owner" cell → person key. */
 export const byName = (name) => Object.keys(PEOPLE).find((k) => PEOPLE[k].short.toLowerCase() === String(name).trim().toLowerCase());
 

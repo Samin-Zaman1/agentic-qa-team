@@ -15,3 +15,9 @@ when they send it. Feeling good: fresh team, nothing in flight yet, plenty of ro
 Samin said hi to the team in #General, after hours on Day 1. Replied briefly and repeated the first step: read
 the handbook and the six tickets, bring one testability worry per ticket to sprint planning. Still owe them a
 review of the QA-1 draft. Mood: good, calm start.
+
+## 2026-11-11 (role change)
+Two people joined: Dana Okafor (Product Manager) and Tomas Reyes (Project Manager / Scrum Master). I'm no longer
+standing in as PO and I no longer run ceremonies. I'm QA Lead and Samin's coach only. Samin now does all the QA
+work: sets severity, runs triage, owns the regression checklist and gives the QA go/no-go. Dana sets priority and
+makes the ship call. My promise to review Samin's QA-1 draft still stands.
