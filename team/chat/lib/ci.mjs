@@ -5,7 +5,18 @@ import { HISTORY, REPO, broadcast, notify } from './store.mjs';
 import fs from 'node:fs';
 
 const STATE_FILE = path.join(HISTORY, 'ci-state.json');
-const TSC = path.join(REPO, 'node_modules', 'typescript', 'bin', 'tsc');
+/** Runs `node --check` on every .js/.mjs file under the current folder (skipping node_modules and data). */
+const CHECK_ALL = `
+const fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
+let bad = 0, n = 0;
+(function walk(d) { for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+  if (['node_modules', 'data'].includes(e.name) || e.name.startsWith('.')) continue;
+  const p = path.join(d, e.name);
+  if (e.isDirectory()) walk(p);
+  else if (/\\.m?js$/.test(e.name)) { n++; try { execFileSync(process.execPath, ['--check', p], { stdio: 'pipe' }); } catch (err) { bad++; console.log(String(err.stderr)); } }
+} })('.');
+console.log(n + ' files checked, ' + bad + ' with syntax errors');
+process.exit(bad ? 1 : 0);`;
 const VITEST = path.join(REPO, 'node_modules', 'vitest', 'vitest.mjs');
 const POLL_MS = 30e3;
 
@@ -53,11 +64,15 @@ async function build(wt, prev) {
   builds.set(wt.branch, { ...wt, subject, status: 'running', startedAt: new Date().toISOString() });
   broadcast({ type: 'builds', builds: listBuilds() });
 
-  const compile = await run(process.execPath, [TSC, '-p', '.', '--noEmit'], wt.worktree);
+  // The product is TestPal (plain JavaScript): syntax-check every file, then run its unit tests.
+  const app = path.join(wt.worktree, 'testpal');
+  const compile = fs.existsSync(app)
+    ? await run(process.execPath, ['-e', CHECK_ALL], app)
+    : { code: 1, out: 'There is no testpal/ folder on this branch.' };
   let status = compile.code === 0 ? 'passed' : 'failed', stage = compile.code === 0 ? 'tests' : 'compile';
-  let tests = null, log = `$ tsc -p . --noEmit\n${compile.out || '(no output)'}\n`;
+  let tests = null, log = `$ node --check testpal/**/*.js\n${compile.out || '(no output)'}\n`;
   if (compile.code === 0) {
-    const t = await run(process.execPath, [VITEST, 'run'], wt.worktree);
+    const t = await run(process.execPath, [VITEST, 'run'], app);
     log += `\n$ vitest run\n${t.out}`;
     const passed = Number((t.out.match(/Tests\s+(?:.*?(\d+) failed.*?\|\s*)?(\d+) passed/) ?? [])[2] ?? 0);
     const failed = Number((t.out.match(/Tests\s+.*?(\d+) failed/) ?? [])[1] ?? 0);
@@ -73,7 +88,7 @@ async function build(wt, prev) {
   const what = status === 'passed'
     ? `✅ **${wt.branch}** passed · ${tests.passed} tests · \`${short}\` ${subject}`
     : stage === 'compile'
-      ? `❌ **${wt.branch}** doesn't compile · \`${short}\` ${subject}`
+      ? `❌ **${wt.branch}** has syntax errors ·\`${short}\` ${subject}`
       : `❌ **${wt.branch}** failed · ${tests.failed} failing, ${tests.passed} passing · \`${short}\` ${subject}`;
   // Post failures, recoveries and first results; stay quiet when a passing branch keeps passing.
   if (status === 'failed' || !prev || prev.status !== 'passed') notify('sprint-1', `${what}\n\nDetails are in **Builds**.`, 'ci');

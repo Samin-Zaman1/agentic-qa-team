@@ -101,12 +101,12 @@ export function createBug(f, dayLabel) {
 
 **Reported by:** Samin · **Date:** ${new Date().toISOString().slice(0, 10)} (${dayLabel}) · **Ticket:** ${f.ticket || 'existing feature'}
 **Severity:** ${f.severity} because ${cellSafe(f.severityReason) || '_(no reason given)_'}
-**Priority:** _(set by Dana at triage)_ · **Owner:** _(agreed at triage)_ · **Status:** New
+**Priority:** _(set by Dana at triage)_ · **Owner:** _(set at triage)_ · **Status:** New
 
 ## Environment
 - Branch / commit: ${cellSafe(f.branch) || '_(not given)_'}
 - OS: ${cellSafe(f.os) || 'Windows 11'}
-- VS Code version (editor bugs only): ${cellSafe(f.vscode) || 'n/a'}
+- Browser: ${cellSafe(f.vscode) || 'n/a'}
 
 ## Steps to reproduce
 ${steps}

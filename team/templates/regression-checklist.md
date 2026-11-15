@@ -5,11 +5,10 @@ Run on the merged build before closing out a sprint. Aim for about 20 minutes.
 
 | # | Area | Check | Pass/Fail | Notes |
 |---|---|---|---|---|
-| 1 | Build | `npm run compile` is clean and `npm test` passes | | |
-| 2 | Editor | _(fill in: CodeLens counts…)_ | | |
-| 3 | Editor | _(fill in: Show Behaviors…)_ | | |
-| 4 | Editor | _(fill in: mismatch diagnostics…)_ | | |
-| 5 | CLI | _(fill in: diff…)_ | | |
-| 6 | CLI | _(fill in: plan…)_ | | |
-| 7 | CLI | _(fill in: check exit codes…)_ | | |
-| 8 | MCP | _(fill in…)_ | | |
+| 1 | Build | CI is green on `main` (`npm test --prefix testpal` passes) | | |
+| 2 | Checklists | _(fill in: create, rename, delete…)_ | | |
+| 3 | Test cases | _(fill in: add, edit, delete…)_ | | |
+| 4 | Results | _(fill in: Pass / Fail / Blocked / Not run, notes, after a reload…)_ | | |
+| 5 | Summary | _(fill in: counts and pass rate…)_ | | |
+| 6 | Export | _(fill in: the markdown file…)_ | | |
+| 7 | Data | _(fill in: restart the server, is everything still there?…)_ | | |

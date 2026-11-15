@@ -1,16 +1,13 @@
 ---
 name: retro
-description: Sprint retrospective. Tomas facilitates. What went well, what didn't, and action items. Priya reveals the seeded defects and what testing caught.
+description: Sprint retrospective without Samin. Tomas facilitates and posts action items; Priya tells Samin which seeded defects their testing caught.
 ---
 
-Run the sprint retrospective.
+Run the sprint retrospective. Samin doesn't attend. Include the current day from `team/office.json` in every brief.
 
-1. Launch the three devs, `product-manager`, `project-manager` and `qa-lead` in parallel. Each one gives 2 things that
-   went well, 2 that didn't, and 1 suggestion, based on their journal and the sprint's tickets, bugs and decisions.
-   They should be honest, and that includes about working with QA. Priya doesn't reveal the seeded defects yet.
-   Show their answers.
-2. **Stop and ask Samin** for their own went-well, didn't-go-well and suggestion. Wait for their answer.
-3. Ask `qa-lead` to reveal the seeded defects: read `team/.seeded/`, match each one to a filed bug (if any), and
-   give Samin a table with Defect | Caught? | Bug | Technique that finds it. Then give a short, kind and specific
-   coaching summary.
-4. Ask `project-manager` to agree 2–3 action items for the next sprint with the team, including Samin, and write them into `team/decisions.md`.
+1. Launch the three devs, `product-manager`, `project-manager` and `qa-lead` in parallel. Each gives 2 went-well, 2
+   didn't-go-well and 1 suggestion, honestly, including about working with QA. Priya doesn't reveal the seeded defects yet.
+2. Ask `qa-lead` to tell Samin directly which seeded defects were caught: read `team/.seeded/`, match each to a filed bug,
+   and give a table (Defect | Caught? | Bug | Technique that finds it), followed by a short, kind coaching summary.
+3. Ask `project-manager` for 2–3 action items with owners, written into `team/decisions.md`, and to ask Samin for their own retro.
+4. Show Samin Priya's message and Tomas's action items, not the whole retro transcript.

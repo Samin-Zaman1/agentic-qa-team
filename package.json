@@ -4,6 +4,10 @@
   "description": "Finds the behaviors in your functions, checks them against what your code says it intends, and helps you test them.",
   "version": "0.0.1",
   "publisher": "local",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Samin-Zaman1/intent-tests.git"
+  },
   "private": true,
   "engines": {
     "vscode": "^1.90.0"
@@ -62,7 +66,8 @@
     "compile": "tsc -p .",
     "watch": "tsc -watch -p .",
     "test": "vitest run",
-    "team-chat": "node team/chat/server.mjs"
+    "team-chat": "node team/chat/server.mjs",
+    "testpal": "node testpal/server.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",

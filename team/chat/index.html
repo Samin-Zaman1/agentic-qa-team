@@ -90,7 +90,7 @@ select:focus, input:focus, textarea:focus { border-color: var(--accent-line); bo
 .sprint .l1 b { color: var(--text); font-weight: 600; }
 .sprint .bar { height: 4px; border-radius: 4px; background: var(--surface-3); overflow: hidden; }
 .sprint .bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--meet)); border-radius: 4px; }
-.me { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 600; color: #fff; background: #0f8f7e; flex: none; }
+.top .me { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 600; color: #fff; background: #0f8f7e; flex: none; }
 .menu-btn { display: none; }
 .notif-dot { position: absolute; top: 7px; right: 7px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
 
@@ -366,6 +366,53 @@ table.grid .mono { font-family: var(--mono); font-size: 12px; }
 .toc b { display: block; font-size: 11px; text-transform: uppercase; color: var(--text-3); letter-spacing: .07em; margin-bottom: 10px; font-weight: 600; }
 .toc a { display: block; color: var(--text-3); padding: 4px 0 4px 12px; border-left: 1px solid var(--border-2); }
 .toc a:hover { color: var(--text); border-color: var(--accent); text-decoration: none; }
+/* ============ guide panel ============ */
+/* Always docked on the right: the office shrinks to make room. */
+:root { --guide-w: clamp(320px, 30vw, 420px); }
+.guide { position: fixed; top: 56px; right: 0; bottom: 0; width: var(--guide-w); background: var(--bg-2); border-left: 1px solid var(--border); display: flex; flex-direction: column; z-index: 15; }
+.app, .banner { margin-right: var(--guide-w); }
+.guide header { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+.guide header small { display: block; color: var(--text-3); font-size: 12px; margin-top: 1px; }
+/* Drag the left edge to resize. */
+.g-resize { position: absolute; left: -4px; top: 0; bottom: 0; width: 8px; cursor: col-resize; z-index: 2; }
+.g-resize:hover, body.g-resizing .g-resize { background: linear-gradient(90deg, transparent 3px, var(--accent-line) 3px, var(--accent-line) 5px, transparent 5px); }
+body.g-resizing { cursor: col-resize; user-select: none; }
+/* Two tabs: Plan and Ask. */
+.g-tabs { display: flex; gap: 2px; padding: 3px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; }
+.g-tabs button { position: relative; font-size: 12.5px; padding: 4px 14px; border-radius: 999px; color: var(--text-2); }
+.g-tabs button[aria-selected="true"] { background: var(--surface); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.15); }
+.g-dot { display: none; position: absolute; top: 3px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.g-tabs button.new .g-dot { display: block; }
+.g-pane { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.g-pane[hidden] { display: none; }
+.g-body { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 16px; }
+.g-plan { font-size: 13.5px; line-height: 1.5; }
+.g-plan .md h3 { font-size: 13px; margin: 12px 0 4px; color: var(--text-2); }
+.g-plan .md h3:first-child { margin-top: 0; font-size: 14.5px; color: var(--text); padding: 8px 10px; border-radius: var(--r-sm); background: var(--accent-soft); border: 1px solid var(--accent-line); }
+.g-plan .md ol, .g-plan .md ul { padding-left: 20px; margin: 4px 0; }
+.g-plan-bar { display: flex; align-items: center; gap: 8px; padding: 10px 16px 14px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-3); }
+.g-plan-bar .sp { flex: 1; }
+.g-plan-bar button { font-size: 12px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--border-2); background: var(--surface-2); color: var(--text-2); }
+.g-plan-bar button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.g-plan-bar button:disabled { opacity: .5; cursor: default; }
+.g-plan-bar .err { color: var(--text-3); font-size: 12.5px; margin-top: 6px; }
+.g-feed { display: flex; flex-direction: column; gap: 10px; }
+.guide .g-chips { padding-top: 10px; border-top: 1px solid var(--border); }
+.g-msg { padding: 9px 12px; border-radius: var(--r); background: var(--surface); border: 1px solid var(--border); font-size: 13.5px; line-height: 1.5; }
+.g-msg.me { background: var(--accent-soft); border-color: var(--accent-line); align-self: flex-end; max-width: 88%; }
+.g-msg.note { color: var(--text-3); font-size: 12.5px; background: none; border-style: dashed; }
+.g-empty { color: var(--text-3); font-size: 13px; line-height: 1.5; }
+.g-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 8px; }
+.g-chips button { font-size: 12px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--border-2); background: var(--surface-2); color: var(--text-2); }
+.g-chips button:hover { color: var(--text); border-color: var(--accent-line); }
+.g-in { display: flex; gap: 8px; align-items: flex-end; padding: 0 16px 16px; }
+.g-in textarea { flex: 1; resize: none; background: var(--surface); border: 1px solid var(--border-2); border-radius: var(--r-sm); color: var(--text); padding: 9px 11px; font: inherit; font-size: 13.5px; }
+/* Phones: the Guide docks to the bottom half instead. */
+@media (max-width: 760px) {
+  .guide { top: auto; left: 0; width: auto; height: 48vh; border-left: 0; border-top: 1px solid var(--border); }
+  .g-resize { display: none; }
+  .app { margin-right: 0; margin-bottom: 48vh; } .banner { margin-right: 0; }
+}
 @media (max-width: 1250px) { .toc { display: none; } }
 
 /* ============ responsive ============ */
@@ -374,7 +421,7 @@ table.grid .mono { font-family: var(--mono); font-size: 12px; }
 @media (max-width: 760px) {
   body { grid-template-rows: 52px auto 1fr; }
   .app, .app.wide { grid-template-columns: minmax(0, 1fr); }
-  .me, #bell { display: none; }
+  .top .me, #bell { display: none; }
   .top { gap: 8px; padding: 0 10px; }
   .clock .btn { padding: 0 10px; }
   .app.wide .side { display: block; }
@@ -401,7 +448,7 @@ table.grid .mono { font-family: var(--mono); font-size: 12px; }
 <body>
 <header class="top">
   <button class="icon-btn menu-btn" id="menu" aria-label="Show menu"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-  <div class="brand"><span class="logo">IT</span><span class="txt"><b>Intent Tests</b><small>Team Office</small></span></div>
+  <div class="brand"><span class="logo">TP</span><span class="txt"><b>TestPal</b><small>Team Office</small></span></div>
   <label class="searchbox"><svg class="i" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="search" type="search" aria-label="Search"><kbd>/</kbd></label>
   <div class="clock" id="clock"></div>
   <button class="icon-btn" id="theme" title="Switch theme"></button>
@@ -426,6 +473,27 @@ table.grid .mono { font-family: var(--mono); font-size: 12px; }
     </div>
   </main>
 </div>
+<aside class="guide" id="guide" aria-label="Guide">
+  <div class="g-resize" id="g-resize" title="Drag to resize. Double-click to reset."></div>
+  <header>
+    <div><b>Guide</b><small>Only you see this.</small></div>
+    <div class="g-tabs" role="tablist" aria-label="Guide">
+      <button role="tab" data-gtab="plan">Plan<span class="g-dot"></span></button>
+      <button role="tab" data-gtab="ask">Ask<span class="g-dot"></span></button>
+    </div>
+  </header>
+  <!-- Plan: what to do now and how. It refreshes by itself. -->
+  <div class="g-pane" data-pane="plan">
+    <div class="g-body" id="g-body"><section class="g-plan" id="g-plan" aria-label="Your plan"></section></div>
+    <div class="g-plan-bar" id="g-plan-bar"></div>
+  </div>
+  <!-- Ask: questions about how to do something. -->
+  <div class="g-pane" data-pane="ask">
+    <div class="g-body" id="g-ask"><div class="g-feed" id="g-feed"></div></div>
+    <div class="g-chips" id="g-chips"></div>
+    <div class="g-in"><textarea id="g-input" rows="2" placeholder="Ask the Guide…"></textarea><button class="send" id="g-send" aria-label="Ask"><svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+  </div>
+</aside>
 <div id="modal-root"></div>
 <script src="/app.js"></script>
 </body>

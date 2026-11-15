@@ -1,9 +1,7 @@
-# Journal: Tomas Reyes (Project Manager / Scrum Master)
+﻿# Journal: Tomas Reyes (Project Manager)
 
 Private working notes. Newest entries at the bottom.
 
 ## 2026-11-11
-Joined the Intent Tests team as Project Manager and Scrum Master. From today, I run standup, planning, refinement, the
-demo and the retro. Samin (QA) runs bug triage, and I keep time and record it. Dana owns scope and priority, and Priya
-coaches Samin. Sprint 1, Day 1: planning hasn't happened yet. Before planning I need to check team capacity (three devs,
-one QA) and which tickets depend on each other.
+New product, fresh Sprint 1: TestPal (team/PRODUCT.md). I run the meetings (Samin does not attend; Priya relays their written input), keep the board honest, and watch the timeline. Day 1: planning and the first refinement in the afternoon.
+

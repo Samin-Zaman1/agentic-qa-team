@@ -8,6 +8,15 @@ import { PEOPLE, REPO, TEAMMATES, append, broadcast, channel, load } from './sto
 const MODEL = process.env.TEAM_CHAT_MODEL; // e.g. "sonnet" for cheaper replies
 export const MAX_HOPS = 1;
 
+/** How every message to Samin must read: short, plain and specific, like a busy colleague in chat. */
+export const STYLE = [
+  `Message style (strict):`,
+  `- 1–2 short sentences, at most about 35 words. One main point. If nothing needs saying, say less.`,
+  `- Plain, everyday words. Say exactly what you need, from whom, and by when. No vague phrases like "keep an eye on things".`,
+  `- No headings, no tables, no bold labels, and no bullet lists unless you're giving 2–4 items Samin asked for.`,
+  `- At most one question. Don't repeat things Samin already knows, and don't explain the process.`,
+].join('\n');
+
 function findClaude() {
   if (process.env.CLAUDE_BIN) return process.env.CLAUDE_BIN;
   const exts = path.join(os.homedir(), '.vscode', 'extensions');
@@ -28,8 +37,8 @@ export const MODEL_NAME = MODEL;
 const ALLOWED_TOOLS = [
   'Read', 'Grep', 'Glob', 'Edit', 'Write',
   'Bash(git:*)', 'Bash(node:*)', 'Bash(ls:*)', 'Bash(cat:*)', 'Bash(cd:*)', 'Bash(mkdir:*)',
-  'Bash(../../node_modules/.bin/tsc:*)', 'Bash(../../node_modules/.bin/vitest:*)',
-  'Bash(npx tsc:*)', 'Bash(npx vitest:*)', 'Bash(npm run compile:*)', 'Bash(npm test:*)',
+  'Bash(../../node_modules/.bin/vitest:*)', 'Bash(../../../node_modules/.bin/vitest:*)', 'Bash(../node_modules/.bin/vitest:*)',
+  'Bash(npx vitest:*)', 'Bash(npm test:*)', 'Bash(curl:*)',
 ];
 
 // ---------- presence ----------
@@ -105,7 +114,7 @@ export function splitChanges(reply) {
 /**
  * Parses a work-session reply:
  *   summary text…
- *   BOARD: IT-101 | Code Review | IT-101-json
+ *   BOARD: TP-101 | Code Review | TP-101-search
  *   BUG: BUG-002 | Fixed: ready for retest
  *   @@ dm
  *   message to Samin…
@@ -159,7 +168,8 @@ function chatPrompt(ch, trigger, hop, extra) {
     `"${trigger.text}"`,
     '',
     extra ?? '',
-    `Reply as yourself, as a chat message: short and natural, the way you'd write in a team chat app. Markdown is fine.`,
+    `Reply as yourself, as a chat message, the way you'd write in a team chat app.`,
+    STYLE,
     hop >= MAX_HOPS
       ? `Don't @mention other teammates in this reply. If someone else needs to weigh in, say so in words.`
       : `If you need another teammate to answer something, you may @mention them by first name (for example @Rafi) and they'll see it.`,

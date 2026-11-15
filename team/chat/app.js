@@ -1,4 +1,4 @@
-// Team Office front end: chat, calendar & meetings, board & bugs, CI builds, and the handbook reader.
+// Team Office front end: chat, board & bugs, CI builds, and the handbook reader.
 const $ = (id) => document.getElementById(id);
 let S = { repo: '', people: {}, channels: [], messages: {}, typing: new Set(), statuses: {} };
 let OFFICE = null, BOARD = null, BUILDS = [], FILES = [];
@@ -97,7 +97,7 @@ function autoIds(html) {
   return html.split(/(<[^>]+>)/).map((part) => {
     if (part.startsWith('<')) { if (/^<a[\s>]/.test(part)) inA++; else if (part === '</a>') inA--; return part; }
     if (inA) return part;
-    return part.replace(/\b(IT-\d{3}|QA-\d+|BUG-\d{3})\b/g, (id) => { const p = idPath(id); return p ? `<a class="ref" href="#doc/${p}">${id}</a>` : id; });
+    return part.replace(/\b(TP-\d{3}|QA-\d+|BUG-\d{3})\b/g, (id) => { const p = idPath(id); return p ? `<a class="ref" href="#doc/${p}">${id}</a>` : id; });
   }).join('');
 }
 function inline(s, base) {
@@ -178,7 +178,7 @@ function avatarHTML(id, cls = '') {
 const chanIcon = (c) => (c.kind === 'dm' ? avatarHTML(c.person) : `<span class="chan-ico">${icon(c.id === 'meetings' ? 'video' : c.id === 'bugs' ? 'bug' : 'hash', 16)}</span>`);
 
 // ================= handbook structure =================
-const START = ['team/README.md', 'team/TEAM.md', 'team/WORKFLOW.md', 'team/TEAMMATE-RULES.md'];
+const START = ['team/README.md', 'team/TEAM.md', 'team/WORKFLOW.md'];
 const HISTORY = ['team/daylog.md', 'team/decisions.md', 'team/standups.md'];
 const words = (p) => p.split('/').pop().replace(/\.md$/, '').replace(/[-_]/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
 function label(f) {
@@ -200,7 +200,6 @@ function sections() {
     { key: 'qa', name: 'Your QA space', items: by((f) => f.path.startsWith('team/qa/')).sort(readmeFirst) },
     { key: 'templates', name: 'Templates', items: by((f) => f.path.startsWith('team/templates/')).sort((a, b) => a.path.localeCompare(b.path)) },
     { key: 'history', name: 'Team history', items: pick(HISTORY) },
-    { key: 'people', name: 'Journals', items: by((f) => f.path.startsWith('team/people/')).sort((a, b) => a.path.localeCompare(b.path)) },
   ];
   const used = new Set(list.flatMap((s) => s.items.map((f) => f.path)));
   const other = FILES.filter((f) => !used.has(f.path));
@@ -226,44 +225,30 @@ function renderClock() {
   if (!OFFICE) return;
   const o = OFFICE;
   const pct = Math.round(((o.day - (o.phase === 'before' ? 1 : 0.5)) / o.daysInSprint) * 100);
-  const btn = o.phase === 'before' ? `<button class="btn primary" id="day-btn">${icon('play', 13, 2.2)} Start day ${o.day}</button>`
-    : o.phase === 'working' ? `<button class="btn" id="day-btn">${icon('moon', 14)} End day ${o.day}</button>`
-    : o.phase === 'ending' ? `<button class="btn" disabled>${icon('refresh', 14)} Wrapping up…</button>`
-    : `<button class="btn" disabled>${icon('flag', 14)} Sprint over</button>`;
-  $('clock').innerHTML = `<div class="sprint" title="Sprint ${o.sprint}, day ${o.day} of ${o.daysInSprint}"><div class="l1"><span><b>Day ${o.day}</b> / ${o.daysInSprint}</span><span>${o.date}</span></div><div class="bar"><span style="width:${Math.max(3, pct)}%"></span></div></div>${btn}`;
-  const b = $('day-btn');
-  if (b) b.onclick = o.phase === 'before' ? startDay : confirmEndDay;
-  if (o.phase === 'ending') $('clock').querySelector('.btn .i')?.classList.add('spin');
+  const since = o.phase === 'working' && o.startedAt ? `<span class="status-text" title="The office notes when you stop: after ${o.idleMinutes} minutes without activity, or when it's closed.">${icon('clock', 13)} Since ${timeOf(o.startedAt)}</span>` : '';
+  $('clock').innerHTML = `<div class="sprint" title="Sprint ${o.sprint}, day ${o.day} of ${o.daysInSprint}"><div class="l1"><span><b>Day ${o.day}</b> / ${o.daysInSprint}</span><span>${o.date}</span></div><div class="bar"><span style="width:${Math.max(3, pct)}%"></span></div></div>${since}`;
 }
 function renderBanner() {
   const b = $('banner'), o = OFFICE;
   if (!o) return;
-  if (o.meeting) {
-    b.hidden = false; b.className = 'banner meet';
-    const state = o.meeting.phase === 'wrapping' ? 'wrapping up' : o.meeting.phase === 'opening' ? 'starting' : 'in progress';
-    b.innerHTML = `<span class="live-dot"></span><span class="grow"><b>${esc(o.meeting.title)}</b> · ${state}</span>
-      ${view === 'chat' && current === 'meetings' ? '' : `<button class="btn sm primary" data-go="#chat/meetings">${icon('video', 13)} Join</button>`}
-      ${o.meeting.phase === 'open' ? `<button class="btn sm" id="end-meeting">End meeting</button>` : ''}`;
-    const e = $('end-meeting'); if (e) e.onclick = endMeeting;
-  } else if (o.phase === 'ending') {
+  if (o.phase === 'ending') {
     b.hidden = false; b.className = 'banner info';
-    b.innerHTML = `<span class="ico">${icon('moon', 15)}</span><span class="grow"><b>End of day ${o.day}.</b> Your teammates are finishing their day's work. Their updates appear in chat as they're done, which can take a few minutes.</span>`;
-  } else if (o.phase === 'before') {
+    b.innerHTML = `<span class="ico">${icon('moon', 15)}</span><span class="grow"><b>You've stopped for today.</b> The team is finishing Day ${o.day}. Their updates will be here when you're back.</span>`;
+  } else if (o.phase === 'done') {
     b.hidden = false; b.className = 'banner info';
-    b.innerHTML = `<span class="ico">${icon('coffee', 15)}</span><span class="grow"><b>Day ${o.day} hasn't started.</b> Grab a coffee, then press <b>Start day ${o.day}</b> in the top right when you're ready to work.</span>`;
+    b.innerHTML = `<span class="ico">${icon('flag', 15)}</span><span class="grow"><b>Sprint ${o.sprint} is over.</b></span>`;
   } else b.hidden = true;
 }
 function unread(ch) { return (S.messages[ch] || []).filter((m) => m.from !== 'samin' && m.ts > (lastSeen[ch] || '')).length; }
-const RAIL = [['chat', 'Chat', 'chat', '#chat'], ['calendar', 'Calendar', 'calendar', '#calendar'], ['board', 'Board', 'board', '#board'], ['builds', 'Builds', 'builds', '#builds'], ['docs', 'Handbook', 'book', '#doc']];
+const RAIL = [['chat', 'Chat', 'chat', '#chat'], ['board', 'Board', 'board', '#board'], ['builds', 'Builds', 'builds', '#builds'], ['docs', 'Handbook', 'book', '#doc']];
 function renderRail() {
   const counts = {
     chat: S.channels.reduce((n, c) => n + (view === 'chat' && c.id === current ? 0 : unread(c.id)), 0),
-    calendar: OFFICE && OFFICE.phase === 'working' ? OFFICE.today.filter((m) => !m.done).length : 0,
     builds: BUILDS.filter((b) => b.status === 'failed').length,
     docs: FILES.length ? docsBadge() : 0,
   };
   $('rail').innerHTML = RAIL.map(([k, l, ic, go]) => `<button class="${view === k ? 'on' : ''}" data-go="${go}" title="${l}"><span class="ri">${icon(ic, 20)}</span>${l}${counts[k] ? `<span class="count ${k === 'builds' ? 'bad' : ''}">${counts[k] > 99 ? '99+' : counts[k]}</span>` : ''}</button>`).join('');
-  $('app').classList.toggle('wide', ['calendar', 'board', 'builds'].includes(view));
+  $('app').classList.toggle('wide', ['board', 'builds'].includes(view));
 }
 const mobileTabs = () => `<div class="mobile-tabs">${RAIL.map(([k, l, , go]) => `<button data-go="${go}" class="${view === k ? 'on' : ''}">${l}</button>`).join('')}</div>`;
 
@@ -302,12 +287,8 @@ function renderHead() {
   head.style.display = '';
   const c = S.channels.find((x) => x.id === current);
   const sub = c.kind === 'dm' ? `${esc(c.topic)} · ${STATUS_TEXT[presence(c.person)]}` : esc(c.topic);
-  const m = OFFICE?.meeting;
-  const action = c.id === 'meetings' && m && m.phase === 'open' ? `<button class="btn" id="head-end">End meeting</button>`
-    : c.id === 'meetings' && !m ? `<a class="btn" href="#calendar">${icon('calendar', 14)} Calendar</a>`
-    : c.id === 'bugs' ? `<button class="btn" id="head-bug">${icon('plus', 14, 2.2)} File a bug</button>` : '';
+  const action = c.id === 'bugs' ? `<button class="btn" id="head-bug">${icon('plus', 14, 2.2)} File a bug</button>` : '';
   head.innerHTML = `<div class="title">${chanIcon(c)}<div style="min-width:0"><b>${esc(c.name)}</b><div class="topic">${sub}</div></div></div>${action}`;
-  const e = $('head-end'); if (e) e.onclick = endMeeting;
   const hb = $('head-bug'); if (hb) hb.onclick = () => bugForm('');
 }
 // System and CI notices are shown as compact event rows, coloured by what they say.
@@ -347,7 +328,6 @@ function renderFeed() {
   if (!msgs.length) {
     const [ic, title, body] = search ? ['search', 'No matches', `Nothing in this conversation matches "${esc(search)}".`]
       : c.kind === 'dm' ? ['chat', `Say hi to ${esc(S.people[c.person].short)}`, `${esc(c.topic)}. Only ${esc(S.people[c.person].short)} sees this conversation.`]
-      : c.id === 'meetings' ? ['video', 'No meetings yet', 'Start one from the <a href="#calendar">Calendar</a>. Everyone joins here.']
       : ['hash', `Welcome to #${esc(c.name)}`, `${esc(c.topic)} Tomas answers posts that don't @mention anyone.`];
     feed.innerHTML = `<div class="empty"><div class="eic">${icon(ic, 22)}</div><b>${title}</b>${body}</div>`;
   } else {
@@ -357,8 +337,7 @@ function renderFeed() {
       const p = S.people[m.from] ?? { name: m.from, role: '' };
       if (p.bot || m.from === 'system') { html += eventRow(m); prev = null; continue; }
       const cont = prev && prev.from === m.from && new Date(m.ts) - new Date(prev.ts) < 5 * 60e3;
-      const changes = m.changes ? `<details class="changes"><summary>${icon('doc', 13)} Files changed</summary><div class="md">${md(m.changes, { breaks: true }).html}</div></details>` : '';
-      html += `<div class="msg ${m.from === 'samin' ? 'mine' : ''} ${cont ? 'cont' : ''}">${m.from === 'samin' ? `<span class="avatar" style="background:#0f8f7e">SZ</span>` : avatarHTML(m.from)}<div class="content"><div class="who"><b>${m.from === 'samin' ? 'You' : esc(p.name)}</b>${m.from === 'samin' ? '' : `<span class="role">${esc(p.role)}</span>`}<time>${timeOf(m.ts)}</time></div><div class="md">${md(m.text, { breaks: true }).html}</div>${changes}</div></div>`;
+      html += `<div class="msg ${m.from === 'samin' ? 'mine' : ''} ${cont ? 'cont' : ''}">${m.from === 'samin' ? `<span class="avatar" style="background:#0f8f7e">SZ</span>` : avatarHTML(m.from)}<div class="content"><div class="who"><b>${m.from === 'samin' ? 'You' : esc(p.name)}</b>${m.from === 'samin' ? '' : `<span class="role">${esc(p.role)}</span>`}<time>${timeOf(m.ts)}</time></div><div class="md">${md(m.text, { breaks: true }).html}</div></div></div>`;
       prev = m;
     }
     feed.innerHTML = html;
@@ -378,67 +357,9 @@ function renderCompose() {
   $('search').disabled = !(chat || view === 'docs');
   if (!chat) return;
   const c = S.channels.find((x) => x.id === current);
-  const m = OFFICE?.meeting;
-  const what = c.kind === 'dm' ? `Only ${esc(S.people[c.person].short)} sees this` : c.id === 'meetings' && m ? `Everyone in the ${esc(m.title)} hears you` : '<kbd>@</kbd> mention someone, or @team for everyone';
+  const what = c.kind === 'dm' ? `Only ${esc(S.people[c.person].short)} sees this` : '<kbd>@</kbd> mention someone, or @team for everyone';
   $('hint').innerHTML = `<span>${what}</span><span><kbd>Enter</kbd> send · <kbd>Shift</kbd>+<kbd>Enter</kbd> new line</span>`;
-  $('input').placeholder = c.kind === 'dm' ? `Message ${S.people[c.person].short}` : c.id === 'meetings' && m ? 'Speak in the meeting…' : `Message #${c.name}`;
-}
-
-// ================= calendar =================
-const MEET_ICON = { standup: 'users', planning: 'flag', refinement: 'search', triage: 'bug', oneonone: 'coffee', demo: 'play', retro: 'refresh' };
-function renderCalendar() {
-  const feed = $('feed'); feed.className = 'page';
-  const o = OFFICE;
-  if (!o) { feed.innerHTML = ''; return; }
-  const canMeet = o.phase === 'working' && !o.meeting;
-  const tickets = (BOARD?.tickets ?? []).filter((t) => t.type === 'Story' && t.status !== 'Done');
-  const ticketSelect = (id) => `<select id="${id}">${tickets.map((t) => `<option value="${t.id}">${t.id} · ${esc(plain(t.title)).slice(0, 46)}</option>`).join('')}</select>`;
-  const slot = (m, i) => {
-    const live = o.meeting && o.meeting.type === m.type;
-    const state = m.done ? `<span class="tag ok">${icon('check', 12, 2.4)} Done</span>` : live ? '<span class="tag meet"><span class="pip"></span>Live</span>' : '';
-    const pickT = m.type === 'refinement' && !m.done && !live ? ticketSelect('slot-ticket-' + i) : '';
-    const btn = m.done ? '' : live ? `<a class="btn primary" href="#chat/meetings">${icon('video', 14)} Join</a>` : `<button class="btn primary" data-meet="${m.type}" data-ticket-from="${pickT ? 'slot-ticket-' + i : ''}" ${canMeet ? '' : 'disabled'}>${icon('play', 12, 2.2)} Start</button>`;
-    return `<div class="card slot ${m.done ? 'done' : ''} ${live ? 'live' : ''}"><span class="t">${m.time}</span>
-      <div class="lead"><span class="kind">${icon(MEET_ICON[m.type] ?? 'calendar', 18)}</span><div class="what"><b>${esc(m.title)}</b>${m.note ? `<small>${esc(m.note)}</small>` : ''}</div></div>
-      <div class="row-actions">${state}${pickT}${btn}</div></div>`;
-  };
-  const why = o.phase === 'before' ? `Day ${o.day} hasn't started. Press <b>Start day ${o.day}</b> at the top to begin.`
-    : o.phase === 'ending' ? 'The day is ending, so no new meetings.' : o.phase === 'done' ? 'The sprint is over. You can still hold the review and the retro if you missed them.' : '';
-  const types = Object.entries(o.titles);
-  feed.innerHTML = `
-    <div class="page-head"><div><h1>Today</h1><p>Day ${o.day} of ${o.daysInSprint} · ${o.date} · Sprint ${o.sprint}${o.out.length ? ` · Out of office: ${o.out.map((p) => esc(S.people[p].short)).join(', ')}` : ''}</p></div></div>
-    ${why ? `<div class="notice">${icon('coffee', 17)}<span>${why}</span></div>` : ''}
-    <div class="timeline">${o.today.map(slot).join('') || '<div class="card muted">No meetings today.</div>'}</div>
-    <div class="section-title">${icon('plus', 13, 2.2)} Start a meeting now</div>
-    <div class="card adhoc">
-      <select id="adhoc-type">${types.map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('')}</select>
-      <span id="adhoc-ticket-wrap" hidden>${ticketSelect('adhoc-ticket')}</span>
-      <button class="btn primary" id="adhoc-start" ${canMeet || o.phase === 'done' ? '' : 'disabled'}>${icon('play', 12, 2.2)} Start</button>
-      <span class="status-text">${o.meeting ? `The ${esc(o.meeting.title)} is still running.` : 'Meetings happen in the Meetings channel.'}</span>
-    </div>
-    <div class="section-title">${icon('calendar', 13)} Rest of the sprint</div>
-    <div class="upcoming">${o.upcoming.map((d) => `<div class="card"><div class="d">Day ${d.day}<span>${d.date}</span></div>${d.meetings.map((m) => `<div class="m"><code>${m.time}</code>${esc(m.title)}</div>`).join('')}</div>`).join('') || '<div class="card muted">This is the last day of the sprint.</div>'}</div>`;
-  const typeSel = $('adhoc-type');
-  const sync = () => ($('adhoc-ticket-wrap').hidden = typeSel.value !== 'refinement');
-  typeSel.onchange = sync; sync();
-  $('adhoc-start').onclick = () => startMeeting(typeSel.value, typeSel.value === 'refinement' ? $('adhoc-ticket').value : undefined);
-  feed.querySelectorAll('[data-meet]').forEach((b) => (b.onclick = () => startMeeting(b.dataset.meet, b.dataset.ticketFrom ? $(b.dataset.ticketFrom).value : undefined)));
-}
-async function startMeeting(type, ticket) {
-  if (type === 'refinement' && !ticket) return toast('Pick a ticket to refine.');
-  const r = await api('/api/meetings/start', { type, ticket });
-  if (r) { OFFICE = r; location.hash = '#chat/meetings'; }
-}
-async function endMeeting() { const r = await api('/api/meetings/end', {}); if (r) { OFFICE = r; renderFrame(); } }
-async function startDay() { const r = await api('/api/office/start-day', {}); if (r) { OFFICE = r; render(); location.hash = '#calendar'; } }
-function confirmEndDay() {
-  modal({
-    title: `End day ${OFFICE.day}?`,
-    sub: 'Everyone heads off to finish their day.',
-    body: `<p>Each teammate who's in today does a realistic day's work on their own: devs write code and commit on their branches, review each other, fix bugs and update the board. Dana handles scope questions, Tomas checks the board and the timeline, and Priya looks at how you're doing. Then they message you about anything you need to know, and the day's recap is posted in General.</p>
-      <p>This takes a few minutes and uses a Claude run for each teammate. Before you go, check you've given your standup update and written down what you tested today.</p>`,
-    actions: [{ label: 'Not yet' }, { label: `End day ${OFFICE.day}`, primary: true, run: async () => { const r = await api('/api/office/end-day', {}); if (r) { OFFICE = r; renderFrame(); location.hash = '#chat/general'; } } }],
-  });
+  $('input').placeholder = c.kind === 'dm' ? `Message ${S.people[c.person].short}` : `Message #${c.name}`;
 }
 
 // ================= board =================
@@ -453,7 +374,6 @@ function renderBoard() {
     if (t.status === 'Ready for QA' || t.status === 'Reopened') a.push(`<button class="btn sm primary" data-move="start-testing" data-id="${t.id}">${icon('play', 11, 2.2)} Start testing</button>`);
     if (t.status === 'In QA') a.push(`<button class="btn sm primary" data-move="pass" data-id="${t.id}">${icon('check', 12, 2.4)} Pass QA</button>`);
     if (['Ready for QA', 'In QA', 'QA Passed'].includes(t.status)) a.push(`<button class="btn sm danger" data-move="reopen" data-id="${t.id}">Reopen</button>`);
-    if (t.status === 'Backlog' && t.type === 'Story') a.push(`<button class="btn sm" data-refine="${t.id}">${icon('search', 12)} Refine</button>`);
     if (!['Backlog', 'Ready', 'Done'].includes(t.status)) a.push(`<button class="btn sm ghost" data-bug="${t.id}">${icon('bug', 12)} Bug</button>`);
     return a.length ? `<div class="acts">${a.join('')}</div>` : '';
   };
@@ -478,7 +398,6 @@ function renderBoard() {
     <div class="section-title">${icon('bug', 13)} Bugs</div>
     ${BOARD.bugs.length ? `<div class="table-wrap"><table class="grid"><thead><tr><th>ID</th><th>Title</th><th>Severity</th><th>Priority</th><th>Ticket</th><th>Owner</th><th>Status</th><th></th></tr></thead><tbody>${bugRows}</tbody></table></div>` : '<div class="card muted">No bugs filed yet. When you find one, use <b>File a bug</b>.</div>'}`;
   feed.querySelectorAll('[data-move]').forEach((b) => (b.onclick = () => moveTicket(b.dataset.id, b.dataset.move)));
-  feed.querySelectorAll('[data-refine]').forEach((b) => (b.onclick = () => (OFFICE?.phase === 'working' ? startMeeting('refinement', b.dataset.refine) : toast('Start the day first.'))));
   feed.querySelectorAll('[data-bug]').forEach((b) => (b.onclick = () => bugForm(b.dataset.bug)));
   feed.querySelectorAll('[data-verify]').forEach((b) => (b.onclick = () => verifyBug(b.dataset.id, b.dataset.verify)));
 }
@@ -486,7 +405,7 @@ async function moveTicket(id, action) {
   const t = BOARD.tickets.find((x) => x.id === id);
   const owner = S.people[t?.ownerKey]?.short ?? 'the owner';
   const copy = {
-    'start-testing': { title: `Start testing ${id}`, sub: 'Moves it to In QA. You can note the build you are testing.', ph: 'e.g. Testing the IT-103 branch at commit abc1234 (optional)', required: false, label: 'Start testing' },
+    'start-testing': { title: `Start testing ${id}`, sub: 'Moves it to In QA. You can note the build you are testing.', ph: 'e.g. Testing the TP-103 branch at commit abc1234 (optional)', required: false, label: 'Start testing' },
     pass: { title: `Pass QA on ${id}`, sub: `This signs it off. ${owner} is told they can merge.`, ph: 'What you verified, and anything left open (optional)', required: false, label: 'Pass QA' },
     reopen: { title: `Reopen ${id}`, sub: `Sends it back to ${owner}. Say what fails and link the bug.`, ph: 'Fails acceptance criterion 2: see BUG-002', required: true, label: 'Reopen' },
   }[action];
@@ -526,7 +445,7 @@ function bugForm(ticket = '') {
     </div>
     <div class="two">
       ${field('os', 'OS', `<input id="bf-os" name="os" value="Windows 11">`)}
-      ${field('vscode', 'VS Code version', `<input id="bf-vscode" name="vscode" placeholder="Editor bugs only">`)}
+      ${field('vscode', 'Browser', `<input id="bf-vscode" name="vscode" placeholder="e.g. Chrome 131, if it matters">`)}
     </div>
     ${field('evidence', 'Evidence', `<textarea id="bf-evidence" name="evidence" rows="2" placeholder="Output, a sample file in team/qa/, or a screenshot path"></textarea>`)}
     ${field('notes', 'Notes', `<textarea id="bf-notes" name="notes" rows="2" placeholder="How often it happens, workarounds, related bugs"></textarea>`)}
@@ -556,16 +475,16 @@ function renderBuilds() {
   const feed = $('feed'); feed.className = 'page';
   const ic = { passed: 'check', failed: 'x', running: 'refresh', queued: 'clock', stale: 'clock' };
   const rows = BUILDS.map((b) => {
-    const tests = b.tests ? `${b.tests.passed} passed${b.tests.failed ? ` · ${b.tests.failed} failed` : ''}` : b.stage === 'compile' && b.status === 'failed' ? "doesn't compile" : '';
+    const tests = b.tests ? `${b.tests.passed} passed${b.tests.failed ? ` · ${b.tests.failed} failed` : ''}` : b.stage === 'compile' && b.status === 'failed' ? 'syntax errors' : '';
     const meta = [b.sha ? `<span><code>${b.sha.slice(0, 7)}</code> ${esc(b.subject ?? '')}</span>` : '', tests && `<span>${tests}</span>`, b.duration ? `<span>${b.duration}s</span>` : '', `<span>${b.finishedAt && !['running', 'queued'].includes(b.status) ? ago(new Date(b.finishedAt).getTime()) : b.status}</span>`].filter(Boolean).join('');
-    const ticket = (b.branch.match(/^(IT-\d+|QA-\d+)/) ?? [])[1];
+    const ticket = (b.branch.match(/^(TP-\d+|QA-\d+)/) ?? [])[1];
     return `<div class="card build"><span class="st ${b.status}">${icon(ic[b.status] ?? 'clock', 17, 2.2).replace('class="i"', `class="i ${b.status === 'running' ? 'spin' : ''}"`)}</span>
       <div style="min-width:0"><div class="br">${icon('branch', 14)}${esc(b.branch)} ${ticket ? `<a class="tag accent" href="#doc/${idPath(ticket) ?? ''}">${ticket}</a>` : ''}</div><div class="meta">${meta}</div></div>
       <div class="row-actions">${b.log ? `<button class="btn sm ghost" data-log="${esc(b.branch)}">${icon('terminal', 13)} ${openLogs.has(b.branch) ? 'Hide log' : 'Log'}</button>` : ''}<button class="btn sm" data-rerun="${esc(b.branch)}" ${b.status === 'running' || b.status === 'queued' ? 'disabled' : ''}>${icon('refresh', 13)} Re-run</button></div>
       ${openLogs.has(b.branch) && b.log ? `<pre>${esc(b.log)}</pre>` : ''}</div>`;
   }).join('');
   const n = (s) => BUILDS.filter((b) => b.status === s).length;
-  feed.innerHTML = `<div class="page-head"><div><h1>Builds</h1><p>CI compiles and tests every branch whenever it gets a new commit, checking every 30 seconds. Test a ticket only once its branch is green.</p></div></div>
+  feed.innerHTML = `<div class="page-head"><div><h1>Builds</h1><p>CI checks and tests every branch whenever it gets a new commit, checking every 30 seconds. Test a ticket only once its branch is green.</p></div></div>
     <div class="stats"><div class="card stat"><div class="k">Branches</div><div class="v">${BUILDS.length}</div></div><div class="card stat"><div class="k">Passing</div><div class="v" style="color:var(--ok)">${n('passed')}</div></div><div class="card stat"><div class="k">Failing</div><div class="v" style="color:${n('failed') ? 'var(--bad)' : 'var(--text)'}">${n('failed')}</div></div><div class="card stat"><div class="k">Running</div><div class="v">${n('running') + n('queued')}</div></div></div>
     <div class="section-title">${icon('branch', 13)} Branches</div>
     <div class="builds">${rows || '<div class="card muted">No branches yet. Builds appear when a dev starts a ticket in a worktree.</div>'}</div>`;
@@ -587,7 +506,7 @@ async function renderDoc({ keepScroll = false, changed = false } = {}) {
   const idx = sec ? sec.items.findIndex((x) => x.path === f.path) : -1;
   const prev = idx > 0 ? sec.items[idx - 1] : null, next = sec && idx < sec.items.length - 1 ? sec.items[idx + 1] : null;
   const pager = sec && (prev || next) ? `<nav class="pager">${prev ? `<a href="#doc/${prev.path}"><small>← Previous</small>${esc(label(prev))}</a>` : ''}${next ? `<a class="next" href="#doc/${next.path}"><small>Next →</small>${esc(label(next))}</a>` : ''}</nav>` : '';
-  const id = (f.path.match(/(IT-\d+|QA-\d+|BUG-\d+)\.md$/) ?? [])[1];
+  const id = (f.path.match(/(TP-\d+|QA-\d+|BUG-\d+)\.md$/) ?? [])[1];
   const bugBtn = id && !id.startsWith('BUG') ? `<button class="btn sm ghost" data-filebug="${id}">${icon('bug', 12)} File a bug</button>` : '';
   feed.innerHTML = `<div class="reader"><article class="article md">
       <div class="crumbs"><span class="path">${icon(docIcon(f.path), 14)}${esc(sec ? sec.name : 'Handbook')} / ${esc(f.path.replace(/^team\//, ''))}</span><span class="acts">${changed ? '<span class="fresh">Updated just now</span>' : `<span>Updated ${ago(f.modified)}</span>`}${bugBtn}<a class="btn sm ghost" href="vscode://file/${encodeURI(f.abs.replace(/\\/g, '/'))}">${icon('ext', 12)} VS Code</a></span></div>
@@ -677,7 +596,6 @@ function render() {
   $('feed').style.padding = '';
   renderFrame(); renderTyping();
   if (view === 'chat') renderFeed();
-  else if (view === 'calendar') renderCalendar();
   else if (view === 'board') renderBoard();
   else if (view === 'builds') renderBuilds();
   else renderDoc();
@@ -689,7 +607,7 @@ function route() {
     view = 'docs';
     docPath = h.slice(4) || load('office.lastDoc', 'team/README.md');
     save('office.lastDoc', docPath);
-  } else if (['calendar', 'board', 'builds'].includes(h)) view = h;
+  } else if (['board', 'builds'].includes(h)) view = h;
   else {
     view = 'chat';
     const ch = h.slice(5);
@@ -761,7 +679,16 @@ function connect() {
   const es = new EventSource('/api/events');
   es.onmessage = (e) => {
     const ev = JSON.parse(e.data);
-    if (ev.type === 'message') {
+    if (ev.type === 'message' && ev.message.channel === 'guide') {
+      GUIDE.messages.push(ev.message); renderGuide();
+      if (ev.message.from !== 'samin') flagTab('ask');
+    } else if (ev.type === 'guide-typing') {
+      GUIDE.typing = ev.on; renderGuide();
+    } else if (ev.type === 'guide-plan') {
+      const fresh = ev.plan.at !== GUIDE.plan.at;
+      GUIDE.plan = ev.plan; renderPlan();
+      if (fresh) { $('g-body').scrollTop = 0; flagTab('plan'); } // a new plan: show it from the top
+    } else if (ev.type === 'message') {
       (S.messages[ev.message.channel] ||= []).push(ev.message);
       maybeNotify(ev.message);
       if (ev.message.channel === current && view === 'chat') renderFeed();
@@ -771,7 +698,7 @@ function connect() {
       renderTyping(); if (view === 'chat') { renderSide(); renderHead(); }
     } else if (ev.type === 'office') {
       OFFICE = ev.office; S.statuses = ev.office.statuses ?? S.statuses;
-      renderFrame(); if (view === 'calendar') renderCalendar();
+      renderFrame();
     } else if (ev.type === 'builds') {
       BUILDS = ev.builds; renderRail(); if (view === 'builds') renderBuilds();
     } else if (ev.type === 'files') {
@@ -787,7 +714,93 @@ function connect() {
   es.onerror = () => { if (view === 'chat') $('typing').textContent = 'Reconnecting to the office server…'; };
   es.onopen = () => renderTyping();
 }
-document.addEventListener('visibilitychange', () => { if (!document.hidden) document.title = 'Team Office'; });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { document.title = 'Team Office'; here(true); } });
+
+// ================= the Guide: your private QA mentor, always docked on the right =================
+// Two tabs. Plan: your prioritized plan, which refreshes by itself as things change. Ask: questions about how.
+let GUIDE = { messages: [], typing: false, plan: { text: '', at: null, busy: false }, tab: load('office.guideTab', 'plan') };
+const GUIDE_CHIPS = ['How do I do the first step?', 'I\'m stuck', 'Review my latest bug report', 'Who should I ask about this?'];
+const dots = '<span class="dots"><span></span><span></span><span></span></span>';
+function showGuideTab(tab, { focus = true } = {}) {
+  GUIDE.tab = tab; save('office.guideTab', tab);
+  document.querySelectorAll('[data-gtab]').forEach((b) => {
+    const on = b.dataset.gtab === tab;
+    b.setAttribute('aria-selected', on);
+    if (on) b.classList.remove('new');
+  });
+  document.querySelectorAll('.g-pane').forEach((p) => (p.hidden = p.dataset.pane !== tab));
+  if (tab === 'ask') { $('g-ask').scrollTop = $('g-ask').scrollHeight; if (focus) $('g-input').focus(); }
+}
+/** Marks a tab you're not looking at as having something new. */
+const flagTab = (tab) => { if (GUIDE.tab !== tab) document.querySelector(`[data-gtab="${tab}"]`).classList.add('new'); };
+document.querySelectorAll('[data-gtab]').forEach((b) => (b.onclick = () => showGuideTab(b.dataset.gtab)));
+
+// Resize: drag the panel's left edge. Your width is remembered; double-click resets it.
+function setGuideWidth(px) {
+  if (px) document.documentElement.style.setProperty('--guide-w', `${Math.round(Math.min(Math.max(px, 280), window.innerWidth * 0.7))}px`);
+  else document.documentElement.style.removeProperty('--guide-w');
+}
+setGuideWidth(load('office.guideW', 0));
+window.addEventListener('resize', () => setGuideWidth(load('office.guideW', 0))); // keep it within the window
+$('g-resize').addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  const handle = e.currentTarget; handle.setPointerCapture(e.pointerId);
+  document.body.classList.add('g-resizing');
+  const move = (ev) => setGuideWidth(window.innerWidth - ev.clientX);
+  const up = () => {
+    handle.removeEventListener('pointermove', move); handle.removeEventListener('pointerup', up);
+    document.body.classList.remove('g-resizing');
+    save('office.guideW', $('guide').getBoundingClientRect().width);
+  };
+  handle.addEventListener('pointermove', move); handle.addEventListener('pointerup', up);
+});
+$('g-resize').ondblclick = () => { setGuideWidth(0); save('office.guideW', 0); };
+
+function renderPlan() {
+  const p = GUIDE.plan, at = p.at ? new Date(p.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
+  $('g-plan').innerHTML = p.text
+    ? `<div class="md">${md(p.text, { breaks: true }).html}</div>`
+    : `<div class="g-empty">${p.busy ? 'Working out your plan for today…' : OFFICE?.phase === 'working' ? 'Your plan will appear here.' : 'Your plan for the day appears here when you start working.'}</div>`;
+  $('g-plan-bar').innerHTML = (p.error ? `<span class="err">${esc(p.error)}</span>` : p.busy ? `${dots} Updating…` : at ? `Updated ${at}` : '')
+    + `<span class="sp"></span>`
+    + `<button id="g-refresh" ${p.busy ? 'disabled' : ''} title="Re-plan with the latest from the team">↻ Refresh</button>`
+    + `<button class="primary" id="g-done" ${p.busy || !p.text ? 'disabled' : ''} title="Tell the Guide you finished the 'Do now' task">✓ Done, what's next?</button>`;
+  $('g-refresh').onclick = () => replan(false);
+  $('g-done').onclick = () => replan(true);
+}
+async function replan(done) {
+  GUIDE.plan = { ...GUIDE.plan, busy: true }; renderPlan();
+  const r = await api('/api/guide/plan', { done });
+  if (r) { GUIDE.plan = { ...r, busy: true }; renderPlan(); }
+}
+/** Redraws the Ask tab and scrolls to the newest answer. */
+function renderGuide() {
+  const msgs = GUIDE.messages.map((m) => `<div class="g-msg ${m.from === 'samin' ? 'me' : m.from === 'office' ? 'note' : ''}"><div class="md">${md(m.text, { breaks: true }).html}</div></div>`).join('');
+  $('g-feed').innerHTML = (msgs || `<div class="g-empty">Not sure how to do a step in your plan, or stuck on something? Ask me here.</div>`)
+    + (GUIDE.typing ? `<div class="g-msg note">${dots} Thinking…</div>` : '');
+  $('g-ask').scrollTop = $('g-ask').scrollHeight;
+  $('g-chips').innerHTML = GUIDE.typing ? '' : GUIDE_CHIPS.map((c) => `<button data-chip="${esc(c)}">${esc(c)}</button>`).join('');
+  $('g-chips').querySelectorAll('[data-chip]').forEach((b) => (b.onclick = () => askGuide(b.dataset.chip)));
+}
+async function askGuide(text) {
+  text = text.trim(); if (!text) return;
+  $('g-input').value = '';
+  const r = await api('/api/guide', { text });
+  if (!r) $('g-input').value = text;
+}
+$('g-send').onclick = () => askGuide($('g-input').value);
+$('g-input').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); askGuide($('g-input').value); } });
+
+// ================= presence: the office notices when you're working and when you've stopped =================
+let lastPing = 0;
+function here(force = false) {
+  if (document.hidden) return;
+  const now = Date.now();
+  if (!force && now - lastPing < 60e3) return;
+  lastPing = now;
+  fetch('/api/presence', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).catch(() => {});
+}
+['pointerdown', 'keydown', 'wheel', 'mousemove', 'touchstart'].forEach((t) => document.addEventListener(t, () => here(), { passive: true, capture: true }));
 
 (async () => {
   renderTheme(); renderBell();
@@ -798,7 +811,9 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) docu
   [BOARD, BUILDS] = await Promise.all([api('/api/board'), api('/api/builds')]);
   BUILDS ??= [];
   await refreshFiles();
+  const g = await api('/api/guide'); if (g) { GUIDE.messages = g.messages; GUIDE.typing = g.typing; GUIDE.plan = g.plan ?? GUIDE.plan; }
+  renderPlan(); renderGuide(); showGuideTab(GUIDE.tab, { focus: false });
   if (!location.hash) location.replace('#chat/general');
   route(); grow();
-  if (!/[?&]nolive\b/.test(location.search)) connect(); // ?nolive: a static snapshot, used for screenshots
+  if (!/[?&]nolive\b/.test(location.search)) { connect(); here(true); } // ?nolive: a static snapshot, used for screenshots
 })();

@@ -8,3 +8,8 @@ eval-results/
 # Team Office runtime state (chat history, CI results, the sprint clock)
 team/chat/history/
 team/office.json
+# The seeded-defect answer key stays local (the repo is public)
+team/.seeded/*
+!team/.seeded/README.md
+# TestPal's saved data
+testpal/data/

@@ -1,12 +1,11 @@
-# QA-2: Regression checklist for existing features
+# QA-2: Explore v0 and make a regression checklist
 
-**Type:** QA task · **Owner:** Samin · **Reviewer:** Priya
+**Type:** QA task · **Owner:** Samin
 
-The product already has 4 editor commands, CodeLens counts, mismatch diagnostics, 3 CLI commands and an MCP
-server. Explore them on `main`, then fill in [templates/regression-checklist.md](../templates/regression-checklist.md)
-so it can be run in about 20 minutes before every merge.
-
-Tip: anything you find while exploring that looks wrong is a bug. Report it.
+TestPal v0 is already built (see [PRODUCT.md](../PRODUCT.md)). Run it on `main` (`npm run testpal`, then
+http://localhost:4500) and explore it. File the bugs you find. Then fill in the short
+[regression checklist](../templates/regression-checklist.md) (copy it to `team/qa/`) so you can rerun it in about
+15 minutes before the sprint ends.
 
 ## Activity
 - 2026-11-11: Created.

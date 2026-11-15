@@ -1,20 +1,20 @@
 # Board: Sprint 1
 
-**Sprint goal:** Make Intent Tests usable in CI and easier to read at a glance.
-**Dates:** 2026-11-11 → 2026-11-24 · **Status:** Not started (run `/sprint-planning`)
+**Sprint goal:** _(proposed)_ A tester can trust TestPal with a real test run: their data is safe, mistakes are caught, and they can see and share what's left and what failed.
+**Dates:** 2026-11-11 → 2026-11-24 · **Status:** Not started
 
 The status column here is the single source of truth. Change it when the work moves.
 
 | ID | Title | Type | Owner | Pts | Status | Branch | Bugs |
 |---|---|---|---|---|---|---|---|
-| [IT-101](tickets/IT-101.md) | `check` and `diff` can print JSON for CI | Story | Rafi | 5 | Backlog | | |
-| [IT-102](tickets/IT-102.md) | `--help` prints usage and exits 0; unknown commands are named | Story | Rafi | 2 | Backlog | | |
-| [IT-103](tickets/IT-103.md) | Status bar shows mismatch count for the active file | Story | Mei | 3 | Backlog | | |
-| [IT-104](tickets/IT-104.md) | Command to toggle behavior counts on and off | Story | Mei | 2 | Backlog | | |
-| [IT-105](tickets/IT-105.md) | Behavior report lists behaviors as a table | Story | Jonas | 3 | Backlog | | |
-| [IT-106](tickets/IT-106.md) | Plan-check report shows failing sections first | Story | Jonas | 2 | Backlog | | |
-| [QA-1](tickets/QA-1.md) | Sprint 1 test strategy | QA task | Samin | — | Backlog | | |
-| [QA-2](tickets/QA-2.md) | Regression checklist for existing features | QA task | Samin | — | Backlog | | |
+| [TP-101](tickets/TP-101.md) | Clear errors for blank, too-long and duplicate names | Story | Rafi | 2 | Backlog | | |
+| [TP-102](tickets/TP-102.md) | Don't lose my data if the save file gets damaged | Story | Rafi | 3 | Backlog | | |
+| [TP-103](tickets/TP-103.md) | Filter test cases by result | Story | Mei | 3 | Backlog | | |
+| [TP-104](tickets/TP-104.md) | Ask before deleting a checklist or test case | Story | Mei | 2 | Backlog | | |
+| [TP-105](tickets/TP-105.md) | "Needs attention" section at the top of the export | Story | Jonas | 3 | Backlog | | |
+| [TP-106](tickets/TP-106.md) | Show run progress next to the pass rate | Story | Jonas | 2 | Backlog | | |
+| [QA-1](tickets/QA-1.md) | Sprint 1 test focus (3–5 lines in chat) | QA task | Samin | — | Backlog | | |
+| [QA-2](tickets/QA-2.md) | Explore v0 and make a regression checklist | QA task | Samin | — | Backlog | | |
 
 ## Bugs
 
@@ -23,4 +23,4 @@ The status column here is the single source of truth. Change it when the work mo
 
 ## Next IDs
 
-Next story: IT-107 · Next bug: BUG-001 · Next QA task: QA-3
+Next story: TP-107 · Next bug: BUG-001 · Next QA task: QA-3

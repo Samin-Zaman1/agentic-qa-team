@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TestPal</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <h1>TestPal</h1>
+    <p class="tagline">Your personal testing assistant</p>
+  </header>
+
+  <div id="message" class="message" role="alert" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <form id="new-checklist" class="new-checklist">
+        <label for="new-checklist-name">New checklist</label>
+        <div class="row">
+          <input id="new-checklist-name" name="name" maxlength="100" placeholder="e.g. Login page" required>
+          <button type="submit" class="primary">Create</button>
+        </div>
+      </form>
+      <h2 class="sidebar-title">Checklists</h2>
+      <ul id="checklists" class="checklists">
+        <li class="empty">Loading…</li>
+      </ul>
+    </aside>
+
+    <main id="open" class="open"></main>
+  </div>
+</body>
+</html>

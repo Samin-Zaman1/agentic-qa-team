@@ -1,18 +1,23 @@
 #!/usr/bin/env node
-// The Intent Tests office: chat, calendar and meetings, board, bug tracker, CI and handbook for the simulated team.
+// The TestPal team's office: chat, calendar and meetings, board, bug tracker, CI and handbook for the simulated team.
 // Usage: npm run team-chat   (then open http://localhost:4321)
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
-import { CHANNELS, FACILITATOR, HERE, PEOPLE, REPO, append, channel, clients, load, notify, readText } from './lib/store.mjs';
-import { CLAUDE, MODEL_NAME, deliver, mentionsIn, statuses, typingKeys } from './lib/agents.mjs';
+import { CHANNELS, FACILITATOR, HERE, PEOPLE, REPO, append, broadcast, channel, clients, load, notify, readSettings } from './lib/store.mjs';
+import { CLAUDE, MODEL_NAME, deliver, mentionsIn, runAgent, splitChanges, statuses, transcript, typingKeys } from './lib/agents.mjs';
 import { createBug, logActivity, readBoard, setBugStatus, setTicketStatus } from './lib/board.mjs';
-import { checkEndDay, checkEndMeeting, checkMeeting, dayLabel, endDay, endMeeting, meetingMessage, officeView, startDay, startMeeting } from './lib/office.mjs';
+import { activity, connected, dayLabel, disconnected, officeView } from './lib/office.mjs';
 import { listBuilds, rerun, startCI } from './lib/ci.mjs';
+import { askGuide, ensurePlan, filesChanged, guideBusy, guidePlan, schedule } from './lib/guide.mjs';
 
 const PORT = Number(process.env.TEAM_CHAT_PORT ?? 4321);
 const TEAM_DIR = path.join(REPO, 'team');
 const SEEDED = path.join(TEAM_DIR, '.seeded');
+/** Files the office never shows Samin: dot folders (the answer key, training settings), teammates' private
+ *  journals, and the rules the simulated teammates follow. */
+const PRIVATE = (rel) => rel.split('/').some((s) => s.startsWith('.')) || rel.startsWith('team/people/') || rel === 'team/TEAMMATE-RULES.md' || rel.startsWith('team/chat/');
+const VISIBLE_CHANNELS = CHANNELS.filter((c) => !c.hidden);
 
 // ---------- helpers ----------
 function readBody(req) {
@@ -41,8 +46,8 @@ function listTeamFiles() {
   const out = [];
   const walk = (dir) => {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-      if (e.name.startsWith('.') || e.name === 'chat') continue;
       const abs = path.join(dir, e.name);
+      if (PRIVATE(path.relative(REPO, abs).split(path.sep).join('/'))) continue;
       if (e.isDirectory()) walk(abs);
       else if (e.name.endsWith('.md')) {
         const title = (fs.readFileSync(abs, 'utf8').match(/^#\s+(.+)$/m) ?? [])[1]?.trim();
@@ -86,8 +91,8 @@ function fileBug(f) {
   if (!/^Sev-[1-4]$/.test(f.severity ?? '')) throw fail('Pick a severity.');
   const id = createBug(f, dayLabel());
   const msg = append('bugs', { from: 'samin', text: `🐞 Filed **${id}**: ${f.title.trim()}\n\n${f.severity}${f.ticket ? `, against ${f.ticket}` : ''}. [Open the report](team/bugs/${id}.md)` });
-  deliver(FACILITATOR, 'bugs', msg, { extra: `Samin just filed ${id} (team/bugs/${id}.md). Acknowledge it in one or two lines and say it's on the agenda for the next triage (Samin runs triage). If it's Sev-1, say what it might do to the sprint and suggest Samin raises it with Dana now. Don't judge the severity or the report.` });
-  if (/\*\*Coaching:\s*always/i.test(readText('team/TEAM.md'))) {
+  deliver(FACILITATOR, 'bugs', msg, { extra: `Samin just filed ${id} (team/bugs/${id}.md). Acknowledge it in one or two lines and say it goes to the next triage (Samin doesn't attend; Priya presents it as written). If it's Sev-1, say what it might do to the sprint and suggest Samin raises it with Dana now. Don't judge the severity or the report.` });
+  if (/\*\*Coaching:\s*always/i.test(readSettings())) {
     deliver('priya', 'bugs', msg, { extra: `Samin just filed ${id} (team/bugs/${id}.md). The Coaching setting is "always": give quick feedback on the report against the rubric in team/WORKFLOW.md (1–2 strengths, 1–2 changes). Don't change the report or its severity yourself.` });
   }
   return id;
@@ -108,29 +113,39 @@ function verifyBug({ id, result, comment = '' }) {
 // ---------- http ----------
 const routes = {
   'GET /api/state': () => ({
-    repo: REPO.split(path.sep).join('/'), people: PEOPLE, channels: CHANNELS,
-    messages: Object.fromEntries(CHANNELS.map((c) => [c.id, load(c.id)])), typing: typingKeys(),
+    repo: REPO.split(path.sep).join('/'), people: PEOPLE, channels: VISIBLE_CHANNELS,
+    messages: Object.fromEntries(VISIBLE_CHANNELS.map((c) => [c.id, load(c.id).map(({ changes, ...m }) => m)])), typing: typingKeys(),
     statuses: statuses(), office: officeView(),
   }),
   'GET /api/files': () => listTeamFiles(),
   'GET /api/board': () => readBoard(),
   'GET /api/builds': () => listBuilds(),
   'POST /api/send': ({ channel: ch, text }) => {
-    if (!channel(ch) || typeof text !== 'string' || !text.trim()) throw fail('Bad message.');
+    if (!channel(ch) || channel(ch).hidden || typeof text !== 'string' || !text.trim()) throw fail('Bad message.');
+    activity();
     const msg = append(ch, { from: 'samin', text: text.trim() });
-    if (ch === 'meetings' && meetingMessage(msg)) return { ok: true };
     for (const person of recipients(ch, msg.text)) deliver(person, ch, msg);
     return { ok: true };
+  },
+  'POST /api/presence': () => { activity(); return officeView(); },
+  'GET /api/guide': () => { ensurePlan(); return { messages: load('guide'), typing: guideBusy(), plan: guidePlan() }; },
+  'POST /api/guide': ({ text }) => {
+    if (typeof text !== 'string' || !text.trim()) throw fail('Bad message.');
+    activity();
+    append('guide', { from: 'samin', text: text.trim() });
+    askGuide(text.trim());
+    return { ok: true };
+  },
+  // "Done, what's next?" and "Refresh": re-plan right away.
+  'POST /api/guide/plan': ({ done }) => {
+    activity();
+    schedule(done ? 'Samin says they finished the "Do now" task and wants the next one' : 'Samin asked for a fresh plan', { now: true });
+    return guidePlan();
   },
   'POST /api/board/move': (body) => { moveTicket(body); return readBoard(); },
   'POST /api/bugs': (body) => ({ id: fileBug(body) }),
   'POST /api/bugs/verify': (body) => { verifyBug(body); return readBoard(); },
   'POST /api/builds/run': ({ branch }) => rerun(branch).then(() => ({ ok: true })),
-  'POST /api/office/start-day': () => startDay(),
-  // These take minutes, so they run in the background, but bad requests are refused first.
-  'POST /api/office/end-day': () => { guard(checkEndDay); endDay().catch((e) => notify('general', `⚠️ The end of the day didn't finish: ${e.message}`)); return officeView(); },
-  'POST /api/meetings/start': ({ type, ticket }) => { guard(() => checkMeeting(type, { ticket })); startMeeting(type, { ticket }).catch((e) => notify('meetings', `⚠️ ${e.message}`)); return officeView(); },
-  'POST /api/meetings/end': () => { guard(checkEndMeeting); endMeeting().catch((e) => notify('meetings', `⚠️ ${e.message}`)); return officeView(); },
 };
 
 const STATIC = { '/': ['index.html', 'text/html; charset=utf-8'], '/app.js': ['app.js', 'text/javascript; charset=utf-8'] };
@@ -145,14 +160,15 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/api/events') {
       res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive' });
       res.write(': connected\n\n');
-      clients.add(res);
-      req.on('close', () => clients.delete(res));
+      clients.add(res); connected();
+      req.on('close', () => { clients.delete(res); disconnected(); });
       return;
     }
-    // Read-only view of team files. Never serves team/.seeded/ (the answer key).
+    // Read-only view of team files. Never serves private files (the answer key, settings, journals, teammate rules).
     if (req.method === 'GET' && url.pathname === '/api/file') {
       const abs = path.resolve(REPO, (url.searchParams.get('path') ?? '').replace(/\\/g, '/'));
-      if (!abs.startsWith(TEAM_DIR + path.sep) || abs.startsWith(SEEDED + path.sep) || !abs.endsWith('.md') || !fs.existsSync(abs)) return send(res, 404, { error: 'Not found' });
+      const rel = path.relative(REPO, abs).split(path.sep).join('/');
+      if (!abs.startsWith(TEAM_DIR + path.sep) || abs.startsWith(SEEDED + path.sep) || PRIVATE(rel) || !abs.endsWith('.md') || !fs.existsSync(abs)) return send(res, 404, { error: 'Not found' });
       return send(res, 200, { path: path.relative(REPO, abs).split(path.sep).join('/'), abs, modified: fs.statSync(abs).mtimeMs, text: fs.readFileSync(abs, 'utf8') });
     }
     const handler = routes[`${req.method} ${url.pathname}`];
@@ -171,10 +187,11 @@ try {
   fs.watch(TEAM_DIR, { recursive: true }, (_event, name) => {
     if (!name) return;
     const rel = 'team/' + String(name).split(path.sep).join('/');
-    if (!rel.endsWith('.md') || rel.startsWith('team/.seeded/') || rel.startsWith('team/chat/')) return;
+    if (!rel.endsWith('.md') || PRIVATE(rel)) return;
     pending.add(rel);
     clearTimeout(flush);
     flush = setTimeout(() => {
+      filesChanged([...pending]);
       const data = `data: ${JSON.stringify({ type: 'files', paths: [...pending] })}\n\n`;
       for (const c of clients) c.write(data);
       pending.clear();

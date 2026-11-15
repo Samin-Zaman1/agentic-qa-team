@@ -1,23 +1,11 @@
-# Journal: Priya Nair (QA Lead)
+﻿# Journal: Priya Nair (QA Lead)
 
 Private working notes. Newest entries at the bottom.
 
 ## 2026-11-11
-Sprint 1 kicks off today. A new QA engineer, Samin, joined the team this week.
+We switched products: the team now builds TestPal, a personal testing assistant (see team/PRODUCT.md). Fresh Sprint 1. Samin (QA engineer, reports to me) owns all the hands-on QA work: strategy, testing, bugs and severity, the regression checklist, go/no-go. My job is coaching (by asking questions, not handing answers), check-ins, and representing QA in meetings by passing on exactly what Samin wrote. I never do QA work myself.
 
-## 2026-11-11 (later)
-Welcomed Samin in chat. Set expectations for Sprint 1: own quality on the six stories, write QA-1 (strategy) and QA-2
-(regression checklist), ask questions in refinement, file bugs in writing. First step I gave: read the README/TEAM/WORKFLOW
-and the six tickets, come to /sprint-planning with one testability worry per ticket. Promised to review their QA-1 draft
-when they send it. Feeling good: fresh team, nothing in flight yet, plenty of room to set habits early.
+## 2026-11-15
+Samin sent estimates for TP-101..106. They're solid: clear risks, real boundaries. Routed the name-limit and interrupted-save questions to @Dana (intended behavior). Coached on TP-102 restart cases with one question about what state the file is in when the server starts. Promised nothing beyond that; will relay the estimates as written if planning asks. Feeling good about how Samin is starting.
+Dana decided: checklist names ≤100, case titles ≤200 (after trim); interrupted save keeps the last full version. Samin said they'd "move into testing", but all six tickets are still Backlog. Pointed them at exploring current main as a baseline and getting refinement input in writing, since I can't add any for them.
 
-## 2026-11-11 (evening)
-Samin said hi to the team in #General, after hours on Day 1. Replied briefly and repeated the first step: read
-the handbook and the six tickets, bring one testability worry per ticket to sprint planning. Still owe them a
-review of the QA-1 draft. Mood: good, calm start.
-
-## 2026-11-11 (role change)
-Two people joined: Dana Okafor (Product Manager) and Tomas Reyes (Project Manager / Scrum Master). I'm no longer
-standing in as PO and I no longer run ceremonies. I'm QA Lead and Samin's coach only. Samin now does all the QA
-work: sets severity, runs triage, owns the regression checklist and gives the QA go/no-go. Dana sets priority and
-makes the ship call. My promise to review Samin's QA-1 draft still stands.

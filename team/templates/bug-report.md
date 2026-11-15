@@ -7,7 +7,7 @@
 ## Environment
 - Branch / commit:
 - OS:
-- VS Code version (editor bugs only):
+- Browser (if it matters):
 
 ## Steps to reproduce
 1.
